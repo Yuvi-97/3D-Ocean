@@ -19,16 +19,17 @@ Built for **Smart India Hackathon (SIH 2026) — Problem Statement #26067**.
 1. [Key Features](#key-features)
 2. [System Architecture](#system-architecture)
 3. [Prerequisites](#prerequisites)
-4. [Quickstart: How to Start the Application](#quickstart-how-to-start-the-application)
+4. [Step 0: Download Ocean Datasets (Needed for Full Backend — ~40–60 mins)](#step-0-download-ocean-datasets-needed-for-full-backend---4060-mins)
+5. [Quickstart: How to Start the Application](#quickstart-how-to-start-the-application)
    - [1. Backend Setup (FastAPI)](#1-backend-setup-fastapi)
    - [2. Frontend Setup (React & CesiumJS)](#2-frontend-setup-react--cesiumjs)
    - [3. Running Both with a Single Script](#3-running-both-with-a-single-script)
-5. [Verification & Automated Tests](#verification--automated-tests)
-6. [Datasets & Data Pipeline](#datasets--data-pipeline)
-7. [Environment Configuration](#environment-configuration)
-8. [Frontend Route Guide](#frontend-route-guide)
-9. [API Reference Overview](#api-reference-overview)
-10. [Troubleshooting & FAQs](#troubleshooting--faqs)
+6. [Verification & Automated Tests](#verification--automated-tests)
+7. [Datasets & Data Pipeline](#datasets--data-pipeline)
+8. [Environment Configuration](#environment-configuration)
+9. [Frontend Route Guide](#frontend-route-guide)
+10. [API Reference Overview](#api-reference-overview)
+11. [Troubleshooting & FAQs](#troubleshooting--faqs)
 
 ---
 
@@ -88,6 +89,43 @@ Before getting started, make sure you have the following installed:
 - **Node.js**: Version `18.x` or higher (`node --version`)
 - **npm**: Version `9.x` or higher (`npm --version`)
 - **Git**: (`git --version`)
+
+---
+
+## Step 0: Download Ocean Datasets (Needed for Full Backend — ~40–60 mins)
+
+> [!NOTE]
+> - **Working only on the Frontend?** You do **not** need to download these datasets! You can start the frontend right away and refer to the [Backend README](file:///d:/3d-Ocean/backend/README.md) for endpoint specifications and mock schemas.
+> - **Running the Backend with Real Data?** If you want to run the FastAPI backend with actual Indian Ocean measurements (CMEMS model, Argo floats, and Gliders), run the download scripts inside the `ocean-data/` folder first.
+>
+> Because these scripts download thousands of high-resolution NetCDF files (~2,400+ Argo profiles, ~2,900+ Glider soundings) and a 2.18 GB numerical model grid directly from scientific servers (IFREMER & Copernicus Marine), the initial download takes **roughly 40 to 60 minutes** depending on your internet bandwidth.
+
+### How to Run the Data Downloaders
+
+If you plan to run the backend with physical ocean data, open a terminal in the root `3d-Ocean` directory and execute:
+
+```bash
+# 1. Navigate to the ocean-data directory
+cd ocean-data
+
+# 2. Run the three download scripts:
+
+# A. Download INCOIS / IFREMER Argo float indices & CTD profiles (~2,400+ NetCDF files)
+python download_argo.py
+
+# B. Download underwater glider mission tracks & dive soundings (~2,900+ NetCDF files)
+python download_glider.py
+
+# C. Download Copernicus Marine (CMEMS) numerical model grid (2.18 GB NetCDF)
+python download_model.py
+```
+
+> [!TIP]
+> **Helpful Notes for Downloading:**
+> - **Automatic Folders:** The scripts automatically create the required `ocean-data/data/` folders (`argo/`, `glider/`, and `model/`).
+> - **Live Progress:** Real-time transfer progress and profile counts are displayed in your terminal.
+> - **Git Safe:** Downloaded files are saved under `ocean-data/data/` and are already ignored by Git to keep your repository clean.
+> - **Background Process:** You can leave the download running in the background while you continue frontend development.
 
 ---
 
@@ -249,8 +287,10 @@ The FastAPI backend exposes modular REST endpoints grouped under `/api/v1`:
 | **Observations**| `/api/v1/observations` | Unified multi-platform spatial bounding box search and paginated catalog. |
 | **Comparison** | `/api/v1/comparison` | Space-time colocation pairs, dual-profile overlay curves, RMSE, and bias stats. |
 | **Analytics** | `/api/v1/analytics` | Marine Heatwave (MHW) detection, hypoxia warnings, and Hovmöller matrices. |
+| **System** | `/health`, `/` | Server status checks, dataset readiness probe, and OpenAPI discovery. |
+| **Legacy Data** | `/data` | Backward-compatibility endpoints (`/data/metadata`, `/data/tile`, `/data/health`). |
 
-Full schema details and live "Try it out" requests are available at [http://localhost:8000/docs](http://localhost:8000/docs).
+Full schema details and live "Try it out" requests are available at [http://localhost:8000/docs](http://localhost:8000/docs) (or [http://localhost:8000/redoc](http://localhost:8000/redoc)).
 
 ---
 

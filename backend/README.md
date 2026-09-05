@@ -115,9 +115,29 @@ backend/
 | `GET` | `/api/v1/analytics/alerts` | Marine heatwave, boundary current shear, and hypoxia hazard alerts |
 | `GET` | `/api/v1/analytics/hovmoller` | Time vs Depth Hovmöller matrix at a chosen location |
 
+### System & Health Endpoints
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/` | Root API directory and service discovery mapping |
+| `GET` | `/health` | Primary health check validating server status & dataset connectivity |
+| `GET` | `/api/v1/health` | Namespaced health check alias under API v1 |
+| `GET` | `/docs` | Interactive Swagger UI API documentation and testing playground |
+| `GET` | `/redoc` | Alternative ReDoc OpenAPI documentation |
+
+### Legacy Data Router (`/data` — Backward Compatibility)
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/data/metadata` | Legacy metadata endpoint returning dimensions, coordinates, and variables |
+| `GET` | `/data/tile` | Legacy 2D scalar tile slice extraction for Three.js grid visualization |
+| `GET` | `/data/health` | Legacy data service health check |
+
 ---
 
 ## 4. Setup & Running the Server
+
+> [!IMPORTANT]
+> **First-Time Setup: Download Ocean Data First (~40–60 mins)**:
+> Before launching the backend for the first time, make sure to populate the dataset files by running the download scripts in `ocean-data/` (`python download_argo.py`, `python download_glider.py`, `python download_model.py`). This one-time download fetches ~5,000+ NetCDF profiles and model grids and takes approximately **40 to 60 minutes**.
 
 ### 1. Install Dependencies
 ```bash

@@ -1,0 +1,458 @@
+/* ── INCOIS 3D Ocean Dashboard Shell matching Frontend 1 ──────────────── */
+.ocean-dashboard-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #02070b;
+  color: #e9f7f8;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+.ocean-dashboard {
+  position: absolute;
+  top: 72px; /* Offset for INCOIS Header */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  background: #06131e;
+  color: #e9f7f8;
+}
+
+/* Globe fills the full background container */
+.globe-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.globe-bg .cesium-viewer,
+.globe-bg .cesium-widget,
+.globe-bg .cesium-widget canvas,
+.globe-bg > div {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Shared panel style ──────────────────────────────────────── */
+.panel {
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid rgba(127, 201, 209, 0.22);
+  background: rgba(6, 22, 35, 0.88);
+  backdrop-filter: blur(10px);
+  padding: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ecf7f7;
+}
+
+.live-badge {
+  font-size: 8px;
+  color: #72ced1;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #65d3a1;
+  box-shadow: 0 0 8px #65d3a1;
+}
+
+/* ── Left panel ──────────────────────────────────────────────── */
+.panel-left {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 265px;
+  z-index: 10;
+  max-height: calc(100% - 130px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(114, 212, 211, 0.3) transparent;
+}
+
+/* ── Right column — stacked panels, no overlap ───────────────── */
+.right-col {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 290px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100% - 130px); /* leave room for bottom bar */
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(114, 212, 211, 0.3) transparent;
+}
+
+/* ── Bottom bar ──────────────────────────────────────────────── */
+.bottom-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 14px;
+  right: 14px;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr 310px;
+  gap: 10px;
+}
+
+/* ── Variable pills ──────────────────────────────────────────── */
+.variable-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.pill {
+  padding: 4px 8px;
+  font-size: 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(141, 206, 214, 0.25);
+  background: rgba(48, 79, 99, 0.45);
+  color: #c6dde0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.pill:hover {
+  background: rgba(48, 79, 99, 0.75);
+  color: #edfafa;
+}
+
+.pill-active {
+  border-color: #8bd9d5;
+  background: #8bd9d5;
+  color: #06131e;
+  font-weight: 600;
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+/* ── Sliders ─────────────────────────────────────────────────── */
+.slider-group {
+  margin-bottom: 12px;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #bdd1d5;
+  margin-bottom: 4px;
+}
+
+.slider-label strong {
+  font-weight: 600;
+  color: #f1faf9;
+}
+
+.slider-group input[type="range"] {
+  width: 100%;
+  accent-color: #58cad0;
+  cursor: pointer;
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #8ca8ae;
+  margin-top: 2px;
+}
+
+/* ── Playback row ────────────────────────────────────────────── */
+.playback-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.playback-row .pill {
+  flex: 1;
+  text-align: center;
+}
+
+/* ── Layer checkboxes ────────────────────────────────────────── */
+.layer-checks {
+  border-top: 1px solid rgba(141, 206, 214, 0.15);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #c6dde0;
+  cursor: pointer;
+}
+
+.check-input {
+  accent-color: #58cad0;
+  width: 13px;
+  height: 13px;
+}
+
+/* ── Condition rows ──────────────────────────────────────────── */
+.condition-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-top: 1px solid rgba(141, 206, 214, 0.12);
+  font-size: 10px;
+  color: #a9c6cb;
+}
+
+.condition-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: #edfafa;
+}
+
+.condition-value small {
+  font-size: 8px;
+  font-weight: 400;
+  color: #8daeb3;
+}
+
+/* ── Temperature legend ──────────────────────────────────────── */
+.legend-block {
+  margin-top: 10px;
+}
+
+.legend-title {
+  font-size: 9px;
+  color: #bfd3d6;
+  margin-bottom: 4px;
+}
+
+.legend-bar {
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(to right, #283fba, #48c9df 50%, #c84c4c);
+  margin-bottom: 3px;
+}
+
+.legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #8ca8ae;
+}
+
+/* ── Argo chart ──────────────────────────────────────────────── */
+.argo-chart {
+  position: relative;
+  height: 95px;
+  border: 1px solid rgba(141, 206, 214, 0.18);
+  background: linear-gradient(to bottom, rgba(71, 157, 180, 0.2), rgba(8, 29, 46, 0.65));
+  margin-bottom: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chart-line {
+  position: absolute;
+  left: 31%;
+  top: 17%;
+  width: 54%;
+  height: 68%;
+  border-bottom: 2px solid #84d4d7;
+  border-left: 2px solid #84d4d7;
+  border-radius: 0 0 0 70%;
+  transform: skewY(-18deg);
+}
+
+.chart-label-y {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  font-size: 7px;
+  color: #c1d9dc;
+}
+
+.chart-depth-axis {
+  position: absolute;
+  left: 4px;
+  top: 10px;
+  font-size: 7px;
+  line-height: 1.6;
+  color: #9bb8be;
+}
+
+.argo-coords {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #a4c1c6;
+  margin-bottom: 4px;
+}
+
+/* ── Stats panel ─────────────────────────────────────────────── */
+.stats-panel {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+  padding: 10px 14px;
+}
+
+.stat-item {
+  padding: 0 10px;
+  border-right: 1px solid rgba(141, 206, 214, 0.14);
+}
+
+.stat-item:last-child {
+  border-right: none;
+}
+
+.stat-label {
+  display: block;
+  font-size: 8px;
+  color: #9eb9be;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f2fbfb;
+}
+
+/* ── Alerts panel ────────────────────────────────────────────── */
+.alerts-panel {
+  padding: 12px 14px;
+}
+
+.alert-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #b7cdd0;
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+
+.alert-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alert-red { background: #f16e6e; box-shadow: 0 0 5px #f16e6e; }
+.alert-orange { background: #eea248; box-shadow: 0 0 5px #eea248; }
+.alert-yellow { background: #e7d35b; box-shadow: 0 0 5px #e7d35b; }
+
+.mb-2 { margin-bottom: 8px; }
+
+/* ── Loading indicator ───────────────────────────────────────── */
+.globe-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #02070b;
+  color: #72ced1;
+  font-size: 13px;
+  z-index: 5;
+  gap: 12px;
+}
+
+.globe-spinner {
+  width: 42px;
+  height: 42px;
+  border: 3px solid rgba(114, 206, 209, 0.2);
+  border-top-color: #72ced1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive: stack panels on narrow screens ─────────────── */
+@media (max-width: 900px) {
+  .ocean-dashboard {
+    overflow: auto;
+    position: relative;
+    top: 72px;
+    height: auto;
+    min-height: calc(100vh - 72px);
+    padding-bottom: 20px;
+  }
+
+  .globe-bg {
+    position: relative;
+    height: 55vh;
+  }
+
+  .panel-left,
+  .right-col {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: auto;
+    max-height: none;
+    margin: 10px;
+  }
+
+  .bottom-bar {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 10px;
+    grid-template-columns: 1fr;
+  }
+
+  .stats-panel {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .stat-item {
+    border-right: none;
+  }
+}

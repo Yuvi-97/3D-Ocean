@@ -1,458 +1,685 @@
-/* ── INCOIS 3D Ocean Dashboard Shell matching Frontend 1 ──────────────── */
-.ocean-dashboard-container {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  background: #02070b;
-  color: #e9f7f8;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-}
+/* ===================================================================
+   INCOIS 3D Ocean Explorer — Production Design System
+   Matches Dashboard, Observations, and Header aesthetic
+   Clean, institutional, developer-designed scientific GIS workspace
+   =================================================================== */
 
-.ocean-dashboard {
-  position: absolute;
-  top: 72px; /* Offset for INCOIS Header */
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: hidden;
-  background: #06131e;
-  color: #e9f7f8;
-}
-
-/* Globe fills the full background container */
-.globe-bg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.globe-bg .cesium-viewer,
-.globe-bg .cesium-widget,
-.globe-bg .cesium-widget canvas,
-.globe-bg > div {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-
-/* ── Shared panel style ──────────────────────────────────────── */
-.panel {
-  box-sizing: border-box;
-  border-radius: 10px;
-  border: 1px solid rgba(127, 201, 209, 0.22);
-  background: rgba(6, 22, 35, 0.88);
-  backdrop-filter: blur(10px);
-  padding: 14px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.panel-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #ecf7f7;
-}
-
-.live-badge {
-  font-size: 8px;
-  color: #72ced1;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #65d3a1;
-  box-shadow: 0 0 8px #65d3a1;
-}
-
-/* ── Left panel ──────────────────────────────────────────────── */
-.panel-left {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  width: 265px;
-  z-index: 10;
-  max-height: calc(100% - 130px);
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(114, 212, 211, 0.3) transparent;
-}
-
-/* ── Right column — stacked panels, no overlap ───────────────── */
-.right-col {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 290px;
-  z-index: 10;
+.explorer-page {
+  min-height: 100vh;
+  background-color: #f9fafb; /* Tailwind bg-gray-50 */
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: calc(100% - 130px); /* leave room for bottom bar */
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(114, 212, 211, 0.3) transparent;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1f2937; /* Tailwind text-gray-800 */
 }
 
-/* ── Bottom bar ──────────────────────────────────────────────── */
-.bottom-bar {
-  position: absolute;
-  bottom: 12px;
-  left: 14px;
-  right: 14px;
-  z-index: 10;
-  display: grid;
-  grid-template-columns: 1fr 310px;
-  gap: 10px;
-}
-
-/* ── Variable pills ──────────────────────────────────────────── */
-.variable-pills {
+/* ── Top Page Header Bar (Below fixed Header) ── */
+.explorer-header-bar {
+  padding-top: 86px; /* Offset below fixed 72px navbar */
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: 12px;
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 12px;
-}
-
-.pill {
-  padding: 4px 8px;
-  font-size: 10px;
-  border-radius: 5px;
-  border: 1px solid rgba(141, 206, 214, 0.25);
-  background: rgba(48, 79, 99, 0.45);
-  color: #c6dde0;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-
-.pill:hover {
-  background: rgba(48, 79, 99, 0.75);
-  color: #edfafa;
-}
-
-.pill-active {
-  border-color: #8bd9d5;
-  background: #8bd9d5;
-  color: #06131e;
-  font-weight: 600;
-}
-
-.w-full {
-  width: 100%;
-}
-
-.mt-2 {
-  margin-top: 8px;
-}
-
-/* ── Sliders ─────────────────────────────────────────────────── */
-.slider-group {
-  margin-bottom: 12px;
-}
-
-.slider-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: #bdd1d5;
-  margin-bottom: 4px;
-}
-
-.slider-label strong {
-  font-weight: 600;
-  color: #f1faf9;
-}
-
-.slider-group input[type="range"] {
-  width: 100%;
-  accent-color: #58cad0;
-  cursor: pointer;
-}
-
-.slider-ticks {
-  display: flex;
-  justify-content: space-between;
-  font-size: 8px;
-  color: #8ca8ae;
-  margin-top: 2px;
-}
-
-/* ── Playback row ────────────────────────────────────────────── */
-.playback-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.playback-row .pill {
-  flex: 1;
-  text-align: center;
-}
-
-/* ── Layer checkboxes ────────────────────────────────────────── */
-.layer-checks {
-  border-top: 1px solid rgba(141, 206, 214, 0.15);
-  padding-top: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.check-label {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  color: #c6dde0;
-  cursor: pointer;
-}
-
-.check-input {
-  accent-color: #58cad0;
-  width: 13px;
-  height: 13px;
-}
-
-/* ── Condition rows ──────────────────────────────────────────── */
-.condition-row {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 7px 0;
-  border-top: 1px solid rgba(141, 206, 214, 0.12);
-  font-size: 10px;
-  color: #a9c6cb;
-}
-
-.condition-value {
-  font-size: 11px;
-  font-weight: 600;
-  color: #edfafa;
-}
-
-.condition-value small {
-  font-size: 8px;
-  font-weight: 400;
-  color: #8daeb3;
-}
-
-/* ── Temperature legend ──────────────────────────────────────── */
-.legend-block {
-  margin-top: 10px;
-}
-
-.legend-title {
-  font-size: 9px;
-  color: #bfd3d6;
-  margin-bottom: 4px;
-}
-
-.legend-bar {
-  height: 7px;
-  border-radius: 4px;
-  background: linear-gradient(to right, #283fba, #48c9df 50%, #c84c4c);
-  margin-bottom: 3px;
-}
-
-.legend-ticks {
-  display: flex;
-  justify-content: space-between;
-  font-size: 8px;
-  color: #8ca8ae;
-}
-
-/* ── Argo chart ──────────────────────────────────────────────── */
-.argo-chart {
-  position: relative;
-  height: 95px;
-  border: 1px solid rgba(141, 206, 214, 0.18);
-  background: linear-gradient(to bottom, rgba(71, 157, 180, 0.2), rgba(8, 29, 46, 0.65));
-  margin-bottom: 8px;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.chart-line {
-  position: absolute;
-  left: 31%;
-  top: 17%;
-  width: 54%;
-  height: 68%;
-  border-bottom: 2px solid #84d4d7;
-  border-left: 2px solid #84d4d7;
-  border-radius: 0 0 0 70%;
-  transform: skewY(-18deg);
-}
-
-.chart-label-y {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  font-size: 7px;
-  color: #c1d9dc;
-}
-
-.chart-depth-axis {
-  position: absolute;
-  left: 4px;
-  top: 10px;
-  font-size: 7px;
-  line-height: 1.6;
-  color: #9bb8be;
-}
-
-.argo-coords {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: #a4c1c6;
-  margin-bottom: 4px;
-}
-
-/* ── Stats panel ─────────────────────────────────────────────── */
-.stats-panel {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  align-items: center;
-  padding: 10px 14px;
-}
-
-.stat-item {
-  padding: 0 10px;
-  border-right: 1px solid rgba(141, 206, 214, 0.14);
-}
-
-.stat-item:last-child {
-  border-right: none;
-}
-
-.stat-label {
-  display: block;
-  font-size: 8px;
-  color: #9eb9be;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: #f2fbfb;
-}
-
-/* ── Alerts panel ────────────────────────────────────────────── */
-.alerts-panel {
-  padding: 12px 14px;
-}
-
-.alert-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 10px;
-  color: #b7cdd0;
-  margin: 6px 0 0;
-  line-height: 1.4;
-}
-
-.alert-dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.alert-red { background: #f16e6e; box-shadow: 0 0 5px #f16e6e; }
-.alert-orange { background: #eea248; box-shadow: 0 0 5px #eea248; }
-.alert-yellow { background: #e7d35b; box-shadow: 0 0 5px #e7d35b; }
-
-.mb-2 { margin-bottom: 8px; }
-
-/* ── Loading indicator ───────────────────────────────────────── */
-.globe-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #02070b;
-  color: #72ced1;
-  font-size: 13px;
-  z-index: 5;
   gap: 12px;
 }
 
-.globe-spinner {
-  width: 42px;
-  height: 42px;
-  border: 3px solid rgba(114, 206, 209, 0.2);
-  border-top-color: #72ced1;
+.explorer-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.explorer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background-color: #ccfbf1; /* teal-100 */
+  color: #115e59; /* teal-800 */
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.explorer-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.explorer-subtitle {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Basin Presets Bar */
+.presets-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.presets-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4b5563;
+  letter-spacing: 0.05em;
+  margin-right: 2px;
+}
+
+.preset-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  color: #4b5563;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.preset-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.preset-btn-active {
+  background: #0d9488 !important; /* teal-600 */
+  color: #ffffff !important;
+  border-color: #0d9488 !important;
+  box-shadow: 0 1px 3px rgba(13, 148, 136, 0.3) !important;
+}
+
+.telemetry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: #374151;
+}
+
+/* ── 3-Column Workspace Container ── */
+.explorer-workspace {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 0 24px 20px 24px;
+  height: calc(100vh - 170px);
+  min-height: 520px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left Sidebar (Control Deck) */
+.explorer-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.explorer-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.explorer-sidebar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.control-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.control-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0d9488; /* teal-600 */
+}
+
+/* Variable Selector Grid */
+.variables-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.var-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.var-button:hover {
+  background: #f3f4f6;
+  border-color: #cbd5e1;
+}
+
+.var-button-active {
+  background: #f0fdfa !important; /* teal-50 */
+  border-color: #0d9488 !important; /* teal-600 */
+  color: #0f766e !important;
+  box-shadow: 0 0 0 1px #0d9488;
+}
+
+.var-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 2px;
+}
+
+.var-button-active .var-name {
+  color: #0f766e;
+}
+
+.var-unit {
+  font-size: 10px;
+  color: #6b7280;
+  font-family: ui-monospace, monospace;
+}
+
+/* Depth Level Slider & Chips */
+.depth-control-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.depth-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.depth-chip {
+  padding: 5px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.depth-chip:hover {
+  background: #e5e7eb;
+}
+
+.depth-chip-active {
+  background: #ccfbf1;
+  border-color: #0d9488;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+.depth-slider-track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.depth-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e5e7eb;
+  border-radius: 4px;
+  outline: none;
+}
+
+.depth-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  background: #0d9488;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.depth-value-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #374151;
 }
 
-/* ── Responsive: stack panels on narrow screens ─────────────── */
-@media (max-width: 900px) {
-  .ocean-dashboard {
-    overflow: auto;
-    position: relative;
-    top: 72px;
-    height: auto;
-    min-height: calc(100vh - 72px);
-    padding-bottom: 20px;
-  }
+/* Observation Layer Toggles */
+.layers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .globe-bg {
-    position: relative;
-    height: 55vh;
-  }
+.layer-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  font-size: 11px;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
 
-  .panel-left,
-  .right-col {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    width: auto;
-    max-height: none;
-    margin: 10px;
-  }
+.layer-toggle-row:hover {
+  background: #f3f4f6;
+}
 
-  .bottom-bar {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    right: auto;
-    margin: 10px;
-    grid-template-columns: 1fr;
-  }
+.layer-toggle-row input[type="checkbox"] {
+  accent-color: #0d9488;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
 
-  .stats-panel {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-  }
+/* ── Center 3D Cesium Viewport Container ── */
+.explorer-viewport-card {
+  flex: 1;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+}
 
-  .stat-item {
-    border-right: none;
-  }
+/* Floating Real-Time Hover Telemetry Pill (Top Center of Globe) */
+.viewport-telemetry-pill {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  color: #374151;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+
+.pulse-teal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0d9488;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
+
+/* Floating 4D Time Player (Bottom Center of Globe) */
+.viewport-time-player {
+  position: absolute;
+  bottom: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(92%, 620px);
+  pointer-events: auto;
+}
+
+.time-play-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #0d9488; /* teal-600 */
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.time-play-btn:hover {
+  background: #0f766e; /* teal-700 */
+}
+
+.time-step-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.time-step-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.time-scrubber-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.time-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #6b7280;
+  font-family: ui-monospace, monospace;
+}
+
+.time-slider {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #e5e7eb;
+  border-radius: 4px;
+  outline: none;
+}
+
+.time-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0d9488;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.date-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.speed-chips {
+  display: flex;
+  gap: 2px;
+  background: #f3f4f6;
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.speed-chip-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  color: #6b7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.speed-chip-btn-active {
+  background: #ffffff;
+  color: #0f766e;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Floating Colorbar Widget (Bottom Right of Globe) */
+.viewport-colorbar {
+  position: absolute;
+  bottom: 14px;
+  right: 16px;
+  z-index: 15;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 8px 12px;
+  width: 190px;
+  pointer-events: auto;
+}
+
+.colorbar-track-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  margin: 5px 0;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* ── Right Inspector Panel (Water Column / In-Situ Platform) ── */
+.explorer-inspector {
+  width: 320px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  animation: fade-in-panel 0.2s ease-out;
+}
+
+@keyframes fade-in-panel {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.inspector-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.inspector-close-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.inspector-close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* Sounding Metric Cards (Matching Dashboard.jsx stat cards) */
+.sounding-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sounding-stat-card {
+  padding: 8px 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.sounding-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.sounding-stat-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  font-family: ui-monospace, monospace;
+}
+
+.sounding-stat-value small {
+  font-size: 11px;
+  color: #0d9488;
+  font-weight: 500;
+  margin-left: 2px;
+}
+
+/* 36-Level Profile Table */
+.sounding-table-box {
+  max-height: 180px;
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  margin-bottom: 12px;
+}
+
+.profile-table {
+  width: 100%;
+  font-size: 10px;
+  text-align: left;
+  border-collapse: collapse;
+}
+
+.profile-table th {
+  position: sticky;
+  top: 0;
+  background: #f3f4f6;
+  padding: 5px 8px;
+  font-weight: 700;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
+  text-transform: uppercase;
+}
+
+.profile-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+  font-family: ui-monospace, monospace;
+}
+
+.profile-table tr:hover td {
+  background: #f0fdfa;
+  color: #0f766e;
+  cursor: pointer;
+}
+
+.profile-table tr.row-active td {
+  background: #ccfbf1;
+  color: #0f766e;
+  font-weight: 700;
+}
+
+/* Primary Action Button (Matches Dashboard / Comparison CTA) */
+.action-primary-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0d9488; /* teal-600 */
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.action-primary-btn:hover {
+  background: #0f766e; /* teal-700 */
 }

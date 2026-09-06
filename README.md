@@ -155,7 +155,7 @@ pip install --upgrade pip
 pip install -r requirements.txt
 
 # 5. Start the FastAPI server
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+ 
 ```
 
 > **Windows PowerShell Shortcut**: Alternatively, you can run `./run_backend.ps1` from the `backend/` directory.

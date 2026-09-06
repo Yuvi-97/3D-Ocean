@@ -132,3 +132,31 @@ export async function getMetadataLevels() {
   const url = `/metadata/levels`;
   return apiGet(url);
 }
+
+/**
+ * 12. Fetch dual profile model vs observation colocation
+ */
+export async function getDualProfile(observationType, profileId, variable = "thetao", timeIndex = null) {
+  let url = `/comparison/dual-profile?observation_type=${encodeURIComponent(observationType)}&profile_id=${encodeURIComponent(profileId)}&variable=${encodeURIComponent(variable)}`;
+  if (timeIndex !== null && timeIndex !== undefined) {
+    url += `&time_index=${timeIndex}`;
+  }
+  return apiGet(url);
+}
+
+/**
+ * 13. Fetch space-time colocated model and in-situ pairs
+ */
+export async function getColocatedPairs(spatialToleranceKm = 50.0, timeToleranceHours = 48.0, variable = "thetao") {
+  const url = `/comparison/colocated-pairs?spatial_tolerance_km=${spatialToleranceKm}&time_tolerance_hours=${timeToleranceHours}&variable=${variable}`;
+  return apiGet(url);
+}
+
+/**
+ * 14. Fetch regional model validation statistics
+ */
+export async function getValidationStatistics(variable = "thetao", depthRange = null) {
+  let url = `/comparison/statistics?variable=${encodeURIComponent(variable)}`;
+  if (depthRange) url += `&depth_range=${encodeURIComponent(depthRange)}`;
+  return apiGet(url);
+}

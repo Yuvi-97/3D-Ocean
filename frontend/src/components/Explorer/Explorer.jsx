@@ -14,10 +14,10 @@ import {
   getGliders,
   getGliderTrack,
   getPointProfile,
-  getArgoProfile,
 } from "../../services/oceanApi";
 import { sampleSliceValue } from "../../utils/colormaps";
 import VolumetricCoreViewer from "./VolumetricCoreViewer";
+import ObservationInspector from "./ObservationInspector";
 import {
   FaPlay,
   FaPause,
@@ -34,6 +34,7 @@ import {
   FaMapMarkerAlt,
   FaSpinner,
   FaChartLine,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import "./Explorer.css";
 
@@ -66,7 +67,6 @@ export default function Explorer() {
   const [gliders, setGliders] = useState([]);
   const [gliderTrack, setGliderTrack] = useState([]);
   const [pointProfileData, setPointProfileData] = useState(null);
-  const [selectedCtdData, setSelectedCtdData] = useState(null);
   const [isSliceLoading, setIsSliceLoading] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
@@ -113,6 +113,14 @@ export default function Explorer() {
   // Extracted levels for the current point profile
   const surfaceLevel = pointProfileData?.profile?.[0];
   const selectedLevel = pointProfileData?.profile?.[depthIndex] || surfaceLevel;
+
+  // Data Availability Detection (Land vs Marine Water vs Out-of-Domain)
+  const hasValidOceanData = useMemo(() => {
+    if (!pointProfileData?.profile || !pointProfileData.profile.length) return false;
+    return pointProfileData.profile.some(
+      (p) => p.thetao !== null && p.thetao !== undefined && !isNaN(p.thetao)
+    );
+  }, [pointProfileData]);
 
   // Handle Preset Basin Navigation
   const handlePresetClick = (preset) => {
@@ -218,7 +226,6 @@ export default function Explorer() {
     async (point) => {
       setClickedPoint(point);
       setSelectedPlatform(null);
-      setSelectedCtdData(null);
       setIsInspectorOpen(true);
       setIsProfileLoading(true);
 
@@ -248,41 +255,24 @@ export default function Explorer() {
   );
 
   // 5. Select In-Situ Platform (Argo Float or Glider)
-  const handlePlatformSelect = useCallback(
-    async (item) => {
-      setSelectedPlatform(item);
-      setIsInspectorOpen(true);
-      setIsProfileLoading(true);
+  const handlePlatformSelect = useCallback((item) => {
+    setSelectedPlatform(item);
+    setIsInspectorOpen(true);
 
-      if (item.type === "argo") {
-        const floatData = item.data;
-        setClickedPoint({
-          lat: floatData.latest_position?.lat || 0,
-          lon: floatData.latest_position?.lon || 0,
-          elevation: 0,
-        });
-
-        try {
-          const profileId = `R${floatData.wmo_id}_001`;
-          const profileData = await getArgoProfile(profileId);
-          setSelectedCtdData(profileData);
-        } catch (e) {
-          setSelectedCtdData(null);
-        } finally {
-          setIsProfileLoading(false);
-        }
-      } else if (item.type === "glider") {
-        const gliderData = item.data;
-        setClickedPoint({
-          lat: Number(((gliderData.bbox.min_lat + gliderData.bbox.max_lat) / 2).toFixed(3)),
-          lon: Number(((gliderData.bbox.min_lon + gliderData.bbox.max_lon) / 2).toFixed(3)),
-          elevation: 0,
-        });
-        setIsProfileLoading(false);
-      }
-    },
-    []
-  );
+    if (item.type === "argo" && item.data?.latest_position) {
+      setClickedPoint({
+        lat: item.data.latest_position.lat,
+        lon: item.data.latest_position.lon,
+        elevation: 0,
+      });
+    } else if (item.type === "glider" && item.data?.bbox) {
+      setClickedPoint({
+        lat: Number(((item.data.bbox.min_lat + item.data.bbox.max_lat) / 2).toFixed(3)),
+        lon: Number(((item.data.bbox.min_lon + item.data.bbox.max_lon) / 2).toFixed(3)),
+        elevation: 0,
+      });
+    }
+  }, []);
 
   // Live mouse movement telemetry
   const handleCursorMove = useCallback((coords) => {
@@ -310,13 +300,6 @@ export default function Explorer() {
 
       {/* ── Page Header Bar (Consistent with Dashboard & Observations) ── */}
       <header className="explorer-header-bar">
-        <div className="explorer-title-area">
-          <h1 className="explorer-title">3D Ocean Explorer</h1>
-          <p className="explorer-subtitle">
-            Interactive volumetric state for CMEMS 1/12° numerical ocean models & autonomous in-situ fleet
-          </p>
-        </div>
-
         {/* Basin Views Preset Chips */}
         <div className="presets-group">
           <span className="presets-label flex items-center gap-1">
@@ -336,13 +319,13 @@ export default function Explorer() {
         </div>
 
         {/* 3D Core / Volumetric Shape Selector & Size */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200 shadow-sm text-xs">
+        <div className="flex-shrink-0 flex items-center gap-2">
+          <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200 shadow-xs text-xs">
             <button
               type="button"
-              className={`px-2.5 py-1 rounded font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded font-semibold transition-all text-xs ${
                 probeMode === "cylinder"
-                  ? "bg-teal-600 text-white shadow-sm"
+                  ? "bg-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => {
@@ -351,13 +334,13 @@ export default function Explorer() {
               }}
               title="3D Cylindrical Ocean Core"
             >
-              ⭕ 3D Cylinder
+              ⭕ Cylinder
             </button>
             <button
               type="button"
-              className={`px-2.5 py-1 rounded font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded font-semibold transition-all text-xs ${
                 probeMode === "cuboid"
-                  ? "bg-teal-600 text-white shadow-sm"
+                  ? "bg-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => {
@@ -366,13 +349,13 @@ export default function Explorer() {
               }}
               title="3D Cuboid Volumetric Box"
             >
-              📦 3D Cuboid
+              📦 Cuboid
             </button>
             <button
               type="button"
-              className={`px-2.5 py-1 rounded font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded font-semibold transition-all text-xs ${
                 probeMode === "point"
-                  ? "bg-teal-600 text-white shadow-sm"
+                  ? "bg-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
               }`}
               onClick={() => setProbeMode("point")}
@@ -383,16 +366,16 @@ export default function Explorer() {
           </div>
 
           {probeMode !== "point" && (
-            <div className="flex items-center gap-1 text-xs">
+            <div className="flex items-center gap-1 text-xs bg-white px-2 py-1 rounded-lg border border-gray-200 shadow-xs">
               <span className="text-gray-500 font-semibold text-[11px]">Radius:</span>
               {[50, 100, 200, 350].map((r) => (
                 <button
                   key={r}
                   type="button"
-                  className={`px-2 py-0.5 rounded border text-[11px] font-semibold transition-all ${
+                  className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-bold transition-all ${
                     selectionRadiusKm === r
-                      ? "bg-teal-50 border-teal-600 text-teal-800"
-                      : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                      ? "bg-teal-600 text-white"
+                      : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
                   }`}
                   onClick={() => setSelectionRadiusKm(r)}
                 >
@@ -403,19 +386,8 @@ export default function Explorer() {
           )}
         </div>
 
-        {/* Right Status / Telemetry & Cinema Mode Toggle */}
-        <div className="flex items-center gap-3">
-          <div className="telemetry-chip hidden lg:inline-flex">
-            <span>
-              {cursorCoords.lat >= 0 ? `${cursorCoords.lat.toFixed(2)}°N` : `${Math.abs(cursorCoords.lat).toFixed(2)}°S`},{" "}
-              {cursorCoords.lon >= 0 ? `${cursorCoords.lon.toFixed(2)}°E` : `${Math.abs(cursorCoords.lon).toFixed(2)}°W`}
-            </span>
-            <span className="text-gray-300">|</span>
-            <span className="text-teal-700 font-semibold">
-              {activeVariable.name}: {liveSampleValue !== null ? `${liveSampleValue.toFixed(2)} ${activeVariable.unit}` : "Ocean"}
-            </span>
-          </div>
-
+        {/* Right Cinema Mode Toggle */}
+        <div className="flex-shrink-0 flex items-center gap-2">
           <button
             type="button"
             className="preset-btn flex items-center gap-1.5"
@@ -611,119 +583,9 @@ export default function Explorer() {
             selectionRadiusKm={selectionRadiusKm}
           />
 
-          {/* Floating On-Globe Region Extraction Toolcard */}
-          <div className="absolute top-3 left-3 z-20 pointer-events-auto">
-            <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-gray-200 p-2.5 flex flex-col gap-2 max-w-[300px]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-800">
-                    3D Extraction Tool
-                  </span>
-                </div>
-                <span className="text-[10px] text-teal-800 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded font-mono font-bold">
-                  {probeMode === "cylinder" ? "⭕ Cylinder" : probeMode === "cuboid" ? "📦 Cuboid" : "📍 Point"}
-                </span>
-              </div>
-
-              {/* Tool Mode Switcher Buttons */}
-              <div className="grid grid-cols-3 gap-1 bg-gray-100 p-1 rounded-lg">
-                <button
-                  type="button"
-                  className={`py-1.5 px-2 rounded-md text-xs font-bold text-center transition-all ${
-                    probeMode === "cylinder"
-                      ? "bg-teal-600 text-white shadow-sm"
-                      : "text-gray-700 hover:text-gray-900 hover:bg-white/80"
-                  }`}
-                  onClick={() => {
-                    setProbeMode("cylinder");
-                    setIsInspectorOpen(true);
-                  }}
-                  title="3D Cylindrical Water Column Core"
-                >
-                  ⭕ Cylinder
-                </button>
-                <button
-                  type="button"
-                  className={`py-1.5 px-2 rounded-md text-xs font-bold text-center transition-all ${
-                    probeMode === "cuboid"
-                      ? "bg-teal-600 text-white shadow-sm"
-                      : "text-gray-700 hover:text-gray-900 hover:bg-white/80"
-                  }`}
-                  onClick={() => {
-                    setProbeMode("cuboid");
-                    setIsInspectorOpen(true);
-                  }}
-                  title="3D Cuboid Volumetric Box"
-                >
-                  📦 Cuboid
-                </button>
-                <button
-                  type="button"
-                  className={`py-1.5 px-2 rounded-md text-xs font-bold text-center transition-all ${
-                    probeMode === "point"
-                      ? "bg-teal-600 text-white shadow-sm"
-                      : "text-gray-700 hover:text-gray-900 hover:bg-white/80"
-                  }`}
-                  onClick={() => setProbeMode("point")}
-                  title="Single Point Station"
-                >
-                  📍 Point
-                </button>
-              </div>
-
-              {/* Radius Selector */}
-              {probeMode !== "point" && (
-                <div className="flex items-center justify-between gap-1 pt-1 border-t border-gray-100">
-                  <span className="text-[11px] text-gray-500 font-semibold">Core Radius:</span>
-                  <div className="flex gap-1">
-                    {[50, 100, 200, 350].map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        className={`px-2 py-0.5 rounded text-xs font-mono font-bold transition-all ${
-                          selectionRadiusKm === r
-                            ? "bg-teal-600 text-white shadow-xs"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                        onClick={() => setSelectionRadiusKm(r)}
-                      >
-                        {r}km
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Quick Sample Presets */}
-              <div className="flex items-center gap-1 text-[10px] text-gray-500 pt-0.5">
-                <span>Presets:</span>
-                <button
-                  type="button"
-                  onClick={() => handleQuickRegionPick(13.4, 85.2, "bay_bengal")}
-                  className="px-1.5 py-0.5 rounded bg-gray-100 hover:bg-teal-50 hover:text-teal-700 font-medium transition-colors"
-                >
-                  Bay of Bengal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickRegionPick(10.0, 71.5, "arabian_sea")}
-                  className="px-1.5 py-0.5 rounded bg-gray-100 hover:bg-teal-50 hover:text-teal-700 font-medium transition-colors"
-                >
-                  Arabian Sea
-                </button>
-              </div>
-
-              {/* Instructional Hint */}
-              <div className="text-[10px] text-teal-800 bg-teal-50/90 px-2 py-1 rounded border border-teal-100 leading-tight">
-                💡 <strong>Click ocean globe</strong> to extract 3D {probeMode} core
-              </div>
-            </div>
-          </div>
-
           {/* Floating Hover Telemetry Pill */}
           <div className="viewport-telemetry-pill">
-            <span className="pulse-teal-dot" />
+            <span className={liveSampleValue !== null ? "pulse-teal-dot" : "pulse-red-dot"} />
             <span className="font-mono text-gray-900 font-bold">
               {cursorCoords.lat >= 0 ? `${cursorCoords.lat.toFixed(2)}°N` : `${Math.abs(cursorCoords.lat).toFixed(2)}°S`},{" "}
               {cursorCoords.lon >= 0 ? `${cursorCoords.lon.toFixed(2)}°E` : `${Math.abs(cursorCoords.lon).toFixed(2)}°W`}
@@ -735,8 +597,14 @@ export default function Explorer() {
             <span className="text-gray-300">|</span>
             <span>
               {activeVariable.name}:{" "}
-              <strong className="text-teal-700 font-mono font-bold">
-                {liveSampleValue !== null ? `${liveSampleValue.toFixed(2)} ${activeVariable.unit}` : "Open Water"}
+              <strong
+                className={`font-mono font-bold ${
+                  liveSampleValue !== null ? "text-teal-700" : "text-red-600"
+                }`}
+              >
+                {liveSampleValue !== null
+                  ? `${liveSampleValue.toFixed(2)} ${activeVariable.unit}`
+                  : "-1.00 (Land / No Data)"}
               </strong>
             </span>
             <span className="text-[10px] text-gray-400 hidden sm:inline">
@@ -824,144 +692,68 @@ export default function Explorer() {
           </div>
         </section>
 
-        {/* ── Right Inspector Panel (Contextual Sounding / Float Dossier) ── */}
-        {isInspectorOpen && (
+        {/* ── Right Inspector Panel (In-Situ Observation Dossier or Water Column Core) ── */}
+        {isInspectorOpen && selectedPlatform && (
+          <ObservationInspector
+            platform={selectedPlatform}
+            onClose={() => {
+              setSelectedPlatform(null);
+              setIsInspectorOpen(false);
+            }}
+            timeIndex={timeIndex}
+          />
+        )}
+
+        {isInspectorOpen && !selectedPlatform && (
           <aside className="explorer-inspector">
-            <div className="inspector-top">
-              <div className="flex items-center gap-2">
-                <FaMapMarkerAlt className="text-teal-600 text-sm" />
-                <div>
-                  <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                    {selectedPlatform
-                      ? `${selectedPlatform.type.toUpperCase()}: ${
-                          selectedPlatform.data.wmo_id || selectedPlatform.data.glider_id
-                        }`
-                      : "Water Column Sounding"}
-                  </h2>
-                  <span className="text-[11px] text-teal-700 font-mono font-medium">
-                    {clickedPoint?.lat}°N, {clickedPoint?.lon}°E
-                  </span>
+              <div className="inspector-top">
+                <div className="flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-teal-600 text-sm" />
+                  <div>
+                    <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                      Water Column Sounding
+                    </h2>
+                    <span className="text-[11px] text-teal-700 font-mono font-medium">
+                      {clickedPoint?.lat}°N, {clickedPoint?.lon}°E
+                    </span>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className="inspector-close-btn"
+                  onClick={() => setIsInspectorOpen(false)}
+                  title="Close Inspector"
+                >
+                  <FaTimes className="text-xs" />
+                </button>
               </div>
-              <button
-                type="button"
-                className="inspector-close-btn"
-                onClick={() => setIsInspectorOpen(false)}
-                title="Close Inspector"
-              >
-                <FaTimes className="text-xs" />
-              </button>
-            </div>
 
-            {isProfileLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-500 text-xs">
-                <FaSpinner className="animate-spin text-xl mb-2 text-teal-600" />
-                <span>Extracting NetCDF Profile...</span>
-              </div>
-            ) : selectedPlatform?.type === "argo" ? (
-              /* Argo Float Dossier */
-              <div className="flex flex-col gap-3">
-                <div className="sounding-metrics-grid">
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Float WMO ID</div>
-                    <div className="sounding-stat-value text-teal-700">{selectedPlatform.data.wmo_id}</div>
-                  </div>
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Total Cycles</div>
-                    <div className="sounding-stat-value">{selectedPlatform.data.total_profiles}</div>
-                  </div>
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Profiler Type</div>
-                    <div className="text-xs font-bold text-gray-800 mt-1">
-                      Apex ({selectedPlatform.data.profiler_type})
-                    </div>
-                  </div>
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Data Mode</div>
-                    <div className="text-xs font-bold text-emerald-600 mt-1">
-                      {selectedPlatform.data.data_modes?.join("/") || "Delayed"}
-                    </div>
-                  </div>
+              {isProfileLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-500 text-xs">
+                  <FaSpinner className="animate-spin text-xl mb-2 text-teal-600" />
+                  <span>Extracting NetCDF Profile...</span>
                 </div>
-
-                <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100">
-                  <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Latest Surface Fix</div>
-                  <div className="text-xs text-gray-800 font-mono">
-                    {selectedPlatform.data.latest_position?.timestamp || "2026-08-14 14:00:57"}
-                  </div>
-                </div>
-
-                {selectedCtdData?.levels && (
-                  <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100 flex flex-col gap-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Surface Temp:</span>
-                      <strong className="text-teal-700 font-mono">
-                        {selectedCtdData.levels[0]?.temperature_c?.toFixed(2) || "28.4"} °C
+              ) : (
+                /* Water Column Sounding & 3D Volumetric Core */
+                <div className="flex flex-col gap-3">
+                {/* Red Warning Banner when clicked coordinate is on land or outside model bounds */}
+                {!hasValidOceanData && !isProfileLoading && (
+                  <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2.5 text-red-800 animate-fadeIn">
+                    <FaExclamationTriangle className="text-red-500 text-sm mt-0.5 flex-shrink-0" />
+                    <div className="flex flex-col gap-0.5">
+                      <strong className="text-xs font-bold text-red-900">
+                        No Ocean Model Data Available at this Coordinate
                       </strong>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">Surface Salinity:</span>
-                      <strong className="text-blue-700 font-mono">
-                        {selectedCtdData.levels[0]?.salinity_psu?.toFixed(2) || "34.8"} PSU
-                      </strong>
+                      <p className="text-[11px] text-red-700 leading-tight">
+                        The selected coordinate ({clickedPoint.lat >= 0 ? `${clickedPoint.lat.toFixed(2)}°N` : `${Math.abs(clickedPoint.lat).toFixed(2)}°S`}, {clickedPoint.lon >= 0 ? `${clickedPoint.lon.toFixed(2)}°E` : `${Math.abs(clickedPoint.lon).toFixed(2)}°W`}) falls on continental land or outside the active CMEMS numerical ocean model grid.
+                      </p>
+                      <span className="text-[10px] font-mono text-red-600 mt-1 font-bold">
+                        Telemetry Value: -1 (N/A)
+                      </span>
                     </div>
                   </div>
                 )}
 
-                <button
-                  type="button"
-                  className="action-primary-btn mt-2"
-                  onClick={() => {
-                    window.location.href = `/comparison?wmo=${selectedPlatform.data.wmo_id}&lat=${clickedPoint.lat}&lon=${clickedPoint.lon}`;
-                  }}
-                >
-                  Colocate with Numerical Model
-                </button>
-              </div>
-            ) : selectedPlatform?.type === "glider" ? (
-              /* Glider Dossier */
-              <div className="flex flex-col gap-3">
-                <div className="sounding-metrics-grid">
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Glider ID</div>
-                    <div className="sounding-stat-value text-amber-700">{selectedPlatform.data.glider_id}</div>
-                  </div>
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Total Dives</div>
-                    <div className="sounding-stat-value">{selectedPlatform.data.total_dives}</div>
-                  </div>
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Max Pressure</div>
-                    <div className="sounding-stat-value">
-                      {selectedPlatform.data.max_recorded_pressure_dbar} <small>dbar</small>
-                    </div>
-                  </div>
-                  <div className="sounding-stat-card">
-                    <div className="sounding-stat-label">Sensors</div>
-                    <div className="text-xs font-bold text-teal-700 mt-1">CTD + DOXY</div>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100">
-                  <div className="text-[10px] text-gray-500 uppercase font-semibold mb-1">Mission Deployment</div>
-                  <div className="text-xs text-gray-800 font-mono">
-                    {selectedPlatform.data.mission_name} ({selectedPlatform.data.date_range?.start?.slice(0, 10)})
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className="action-primary-btn mt-2 bg-amber-600 hover:bg-amber-700"
-                  onClick={() => {
-                    window.location.href = `/observations?glider=${selectedPlatform.data.glider_id}`;
-                  }}
-                >
-                  Inspect Sawtooth Mission Data
-                </button>
-              </div>
-            ) : (
-              /* Water Column Sounding & 3D Volumetric Core */
-              <div className="flex flex-col gap-3">
                 {/* Mode Switcher & Radius inside Inspector */}
                 <div className="flex flex-col gap-1.5 p-2 rounded-lg bg-gray-50 border border-gray-200">
                   <div className="flex items-center justify-between">
@@ -1026,6 +818,27 @@ export default function Explorer() {
                       </div>
                     </div>
                   )}
+
+                  {/* Quick Region Presets in Inspector */}
+                  <div className="flex items-center justify-between pt-1 border-t border-gray-200/60 text-[10px] text-gray-500">
+                    <span>Quick Ocean Sites:</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickRegionPick(13.4, 85.2, "bay_bengal")}
+                        className="px-1.5 py-0.5 rounded bg-white hover:bg-teal-50 hover:text-teal-700 border border-gray-200 font-medium transition-colors"
+                      >
+                        Bay of Bengal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleQuickRegionPick(10.0, 71.5, "arabian_sea")}
+                        className="px-1.5 py-0.5 rounded bg-white hover:bg-teal-50 hover:text-teal-700 border border-gray-200 font-medium transition-colors"
+                      >
+                        Arabian Sea
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Interactive 3D WebGL Volumetric Core Visualizer */}
@@ -1041,75 +854,94 @@ export default function Explorer() {
                     depthMeters={currentDepth.depth_m}
                     thermoclineDepth={thermoclineInfo.depth}
                     pointProfileData={pointProfileData}
+                    hasValidOceanData={hasValidOceanData}
                   />
                 )}
 
                 <div className="sounding-metrics-grid">
                   <div className="sounding-stat-card">
                     <div className="sounding-stat-label">Surface Temp</div>
-                    <div className="sounding-stat-value text-teal-700">
-                      {surfaceLevel?.thetao != null
+                    <div
+                      className={`sounding-stat-value ${
+                        hasValidOceanData ? "text-teal-700" : "text-red-600 font-bold"
+                      }`}
+                    >
+                      {hasValidOceanData && surfaceLevel?.thetao != null
                         ? surfaceLevel.thetao.toFixed(2)
-                        : liveSampleValue != null
-                        ? liveSampleValue.toFixed(2)
-                        : "29.40"}{" "}
+                        : "-1.00"}{" "}
                       <small>°C</small>
                     </div>
                   </div>
 
                   <div className="sounding-stat-card">
                     <div className="sounding-stat-label">Slice Temp ({currentDepth.depth_m}m)</div>
-                    <div className="sounding-stat-value text-gray-900">
-                      {selectedLevel?.thetao != null ? selectedLevel.thetao.toFixed(2) : "--"}{" "}
+                    <div
+                      className={`sounding-stat-value ${
+                        hasValidOceanData ? "text-gray-900" : "text-red-600 font-bold"
+                      }`}
+                    >
+                      {hasValidOceanData && selectedLevel?.thetao != null
+                        ? selectedLevel.thetao.toFixed(2)
+                        : "-1.00"}{" "}
                       <small>°C</small>
                     </div>
                   </div>
 
                   <div className="sounding-stat-card">
                     <div className="sounding-stat-label">Salinity ({currentDepth.depth_m}m)</div>
-                    <div className="sounding-stat-value text-blue-700">
-                      {selectedLevel?.so != null
+                    <div
+                      className={`sounding-stat-value ${
+                        hasValidOceanData ? "text-blue-700" : "text-red-600 font-bold"
+                      }`}
+                    >
+                      {hasValidOceanData && selectedLevel?.so != null
                         ? selectedLevel.so.toFixed(2)
-                        : surfaceLevel?.so != null
-                        ? surfaceLevel.so.toFixed(2)
-                        : "34.80"}{" "}
+                        : "-1.00"}{" "}
                       <small>PSU</small>
                     </div>
                   </div>
 
                   <div className="sounding-stat-card">
                     <div className="sounding-stat-label">Current Velocity</div>
-                    <div className="sounding-stat-value text-emerald-700">
-                      {selectedLevel?.speed != null
+                    <div
+                      className={`sounding-stat-value ${
+                        hasValidOceanData ? "text-emerald-700" : "text-red-600 font-bold"
+                      }`}
+                    >
+                      {hasValidOceanData && selectedLevel?.speed != null
                         ? selectedLevel.speed.toFixed(3)
-                        : surfaceLevel?.speed != null
-                        ? surfaceLevel.speed.toFixed(3)
-                        : "0.320"}{" "}
+                        : "-1.000"}{" "}
                       <small>m/s</small>
                     </div>
                   </div>
                 </div>
 
                 {/* Thermocline Core Depth Banner */}
-                <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100">
-                  <div className="flex justify-between items-center text-xs text-gray-600 mb-1.5">
-                    <span className="flex items-center gap-1 font-medium">
-                      <FaChartLine className="text-teal-600" />
-                      Thermocline Core Depth
-                    </span>
-                    <strong className="text-teal-800 font-mono">
-                      {thermoclineInfo.depth.toFixed(1)} m
-                    </strong>
+                {hasValidOceanData ? (
+                  <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100">
+                    <div className="flex justify-between items-center text-xs text-gray-600 mb-1.5">
+                      <span className="flex items-center gap-1 font-medium">
+                        <FaChartLine className="text-teal-600" />
+                        Thermocline Core Depth
+                      </span>
+                      <strong className="text-teal-800 font-mono">
+                        {thermoclineInfo.depth.toFixed(1)} m
+                      </strong>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full bg-teal-600"
+                        style={{
+                          width: `${Math.min(100, Math.max(10, (thermoclineInfo.depth / 300) * 100))}%`,
+                        }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-gray-200 overflow-hidden">
-                    <div
-                      className="h-full bg-teal-600"
-                      style={{
-                        width: `${Math.min(100, Math.max(10, (thermoclineInfo.depth / 300) * 100))}%`,
-                      }}
-                    />
+                ) : (
+                  <div className="p-2.5 rounded-lg bg-red-50 border border-red-200 text-center text-xs text-red-700 font-mono">
+                    Thermocline Depth: -1 m (Land / Out of Domain)
                   </div>
-                </div>
+                )}
 
                 {/* 36-Level Profile Table */}
                 {pointProfileData?.profile && pointProfileData.profile.length > 0 && (
@@ -1132,9 +964,15 @@ export default function Explorer() {
                             title={`Click to set depth to ${lvl.depth_m}m`}
                           >
                             <td>{lvl.depth_m.toFixed(1)}m</td>
-                            <td>{lvl.thetao != null ? `${lvl.thetao.toFixed(2)}°C` : "--"}</td>
-                            <td>{lvl.so != null ? `${lvl.so.toFixed(2)}` : "--"}</td>
-                            <td>{lvl.speed != null ? `${lvl.speed.toFixed(2)}` : "--"}</td>
+                            <td className={hasValidOceanData && lvl.thetao != null ? "" : "text-red-600 font-semibold"}>
+                              {hasValidOceanData && lvl.thetao != null ? `${lvl.thetao.toFixed(2)}°C` : "-1.00"}
+                            </td>
+                            <td className={hasValidOceanData && lvl.so != null ? "" : "text-red-600 font-semibold"}>
+                              {hasValidOceanData && lvl.so != null ? `${lvl.so.toFixed(2)}` : "-1.00"}
+                            </td>
+                            <td className={hasValidOceanData && lvl.speed != null ? "" : "text-red-600 font-semibold"}>
+                              {hasValidOceanData && lvl.speed != null ? `${lvl.speed.toFixed(2)}` : "-1.00"}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

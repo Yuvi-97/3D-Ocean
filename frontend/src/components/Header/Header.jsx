@@ -35,7 +35,6 @@ const Header = () => {
           {[
             { to: '/', label: 'Dashboard' },
             { to: '/explorer', label: '3D Explorer' },
-            { to: '/observations', label: 'Observations' },
             { to: '/comparison', label: 'Model vs Observation' },
             { to: '/alerts', label: 'Alerts & Forecasts' },
             { to: '/analytics', label: 'Analytics & Reports' },
@@ -73,10 +72,10 @@ const Header = () => {
                 Marine Hazard Alerts
               </Link>
               <Link
-                to="/observations"
+                to="/explorer"
                 className="px-3 py-2 text-gray-700 hover:bg-teal-600 hover:text-white transition-colors text-sm"
               >
-                In-Situ Instrument Feeds
+                In-Situ Fleet Explorer
               </Link>
               <Link
                 to="/about"

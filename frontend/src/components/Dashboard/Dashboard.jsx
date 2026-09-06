@@ -104,10 +104,10 @@ const Dashboard = () => {
                 🌊 Launch 3D Explorer
               </a>
               <a
-                href="/observations"
+                href="/explorer"
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-medium text-sm rounded-lg border border-white/20 transition-all duration-200 whitespace-nowrap"
               >
-                📡 In-Situ Profiles
+                📡 In-Situ Profiles on 3D Globe
               </a>
             </div>
           </div>
@@ -287,10 +287,10 @@ const Dashboard = () => {
               </p>
             </div>
             <a
-              href="/observations"
+              href="/explorer"
               className="text-xs text-teal-600 hover:text-teal-700 font-semibold"
             >
-              Browse All 54 Active Platforms &rarr;
+              Explore All Platforms on 3D Globe &rarr;
             </a>
           </div>
 

@@ -26,6 +26,7 @@ export default function VolumetricCoreViewer({
   depthMeters = 0.49,
   thermoclineDepth = 155.9,
   pointProfileData = null,
+  hasValidOceanData = true,
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -72,7 +73,14 @@ export default function VolumetricCoreViewer({
   }, [sliceData, centerLat, centerLon, radiusKm, shape, variable, depthMeters]);
 
   useEffect(() => {
-    if (textureData) {
+    if (!hasValidOceanData) {
+      setCoreStats({
+        meanVal: -1.0,
+        minVal: -1.0,
+        maxVal: -1.0,
+        oceanPct: 0,
+      });
+    } else if (textureData) {
       setCoreStats({
         meanVal: textureData.meanVal,
         minVal: textureData.minVal,
@@ -80,7 +88,7 @@ export default function VolumetricCoreViewer({
         oceanPct: textureData.oceanPct,
       });
     }
-  }, [textureData]);
+  }, [hasValidOceanData, textureData]);
 
   // Key depth levels for the stacked volumetric core
   const stackedLevels = useMemo(() => {
@@ -162,6 +170,34 @@ export default function VolumetricCoreViewer({
       }
 
       const totalHeight = 3.0;
+
+      // Handle Land / Out-of-Domain coordinates
+      if (!hasValidOceanData) {
+        let landGeo;
+        if (shape === "cylinder") {
+          landGeo = new THREE.CylinderGeometry(1.3, 1.3, totalHeight, 36);
+        } else {
+          landGeo = new THREE.BoxGeometry(2.3, totalHeight, 2.3);
+        }
+        const landMat = new THREE.MeshStandardMaterial({
+          color: 0x334155, // slate-700
+          roughness: 0.85,
+          metalness: 0.1,
+          transparent: true,
+          opacity: 0.65,
+        });
+        const landMesh = new THREE.Mesh(landGeo, landMat);
+        coreGroup.add(landMesh);
+
+        const landWireMat = new THREE.LineBasicMaterial({
+          color: 0xef4444, // red-500
+          transparent: true,
+          opacity: 0.6,
+        });
+        const landWire = new THREE.LineSegments(new THREE.WireframeGeometry(landGeo), landWireMat);
+        coreGroup.add(landWire);
+        return;
+      }
 
       // A. Outer Mantle Wall with True Vertical Temperature Gradient
       const mantleCanvas = generateVerticalColumnMantleTexture(pointProfileData?.profile, variable);
@@ -398,7 +434,7 @@ export default function VolumetricCoreViewer({
       renderer.dispose();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shape, showStackedLayers, pointProfileData, variable]);
+  }, [shape, showStackedLayers, pointProfileData, variable, hasValidOceanData]);
 
   // 3. Smoothly animate slicing disc Y position when depthIndex changes
   useEffect(() => {
@@ -477,24 +513,53 @@ export default function VolumetricCoreViewer({
           </div>
         </div>
 
+        {/* Land / Out-of-Domain Red Alert Overlay */}
+        {!hasValidOceanData && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-black/75 backdrop-blur-xs text-center z-10 pointer-events-none">
+            <span className="px-2.5 py-1 rounded-md bg-red-600 text-white font-bold text-xs uppercase tracking-wider mb-1.5 shadow-md">
+              No Ocean Model Data
+            </span>
+            <span className="text-[11px] text-red-200 max-w-[220px] font-mono leading-tight">
+              Coordinate on continental land or outside numerical model domain.
+            </span>
+            <span className="text-[10px] text-red-300 font-mono mt-1 font-bold">
+              Profile Values = -1
+            </span>
+          </div>
+        )}
+
         {/* Left Depth Scale with Real Depth Temperatures */}
         <div className="absolute left-2 top-14 bottom-11 flex flex-col justify-between text-[9px] font-mono text-slate-300 pointer-events-none select-none drop-shadow-md">
-          <span className="text-orange-300">0m (29.9°C)</span>
-          <span className="text-amber-200">34m</span>
-          <span className="text-emerald-300 font-bold">~{thermoclineDepth.toFixed(0)}m (Thermo)</span>
-          <span className="text-cyan-300">380m</span>
-          <span className="text-indigo-300">1062m (6.6°C)</span>
+          <span className={hasValidOceanData ? "text-orange-300" : "text-red-400 font-bold"}>
+            0m ({hasValidOceanData ? "29.9°C" : "-1"})
+          </span>
+          <span className={hasValidOceanData ? "text-amber-200" : "text-red-400 font-bold"}>
+            34m ({hasValidOceanData ? "29.8°C" : "-1"})
+          </span>
+          <span className={`font-bold ${hasValidOceanData ? "text-emerald-300" : "text-red-400"}`}>
+            ~{thermoclineDepth.toFixed(0)}m ({hasValidOceanData ? "Thermo" : "-1"})
+          </span>
+          <span className={hasValidOceanData ? "text-cyan-300" : "text-red-400 font-bold"}>
+            380m ({hasValidOceanData ? "11.0°C" : "-1"})
+          </span>
+          <span className={hasValidOceanData ? "text-indigo-300" : "text-red-400 font-bold"}>
+            1062m ({hasValidOceanData ? "6.6°C" : "-1"})
+          </span>
         </div>
 
         {/* Bottom Current Slice Telemetry */}
         <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/80 backdrop-blur-sm border border-white/10 text-xs text-white">
           <div className="flex items-center gap-1.5">
             <span className="text-gray-300 text-[11px]">Active Slice:</span>
-            <strong className="text-teal-400 font-mono">{depthMeters.toFixed(1)}m</strong>
+            <strong className={`font-mono ${hasValidOceanData ? "text-teal-400" : "text-red-400 font-bold"}`}>
+              {hasValidOceanData ? `${depthMeters.toFixed(1)}m` : "-1 m (N/A)"}
+            </strong>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-gray-300 text-[11px]">Core Mean:</span>
-            <strong className="text-amber-400 font-mono">{coreStats.meanVal} {unit}</strong>
+            <strong className={`font-mono ${hasValidOceanData ? "text-amber-400" : "text-red-400 font-bold"}`}>
+              {hasValidOceanData ? `${coreStats.meanVal} ${unit}` : `-1 ${unit}`}
+            </strong>
           </div>
         </div>
       </div>
@@ -503,22 +568,30 @@ export default function VolumetricCoreViewer({
       <div className="grid grid-cols-3 gap-2">
         <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 text-center">
           <span className="text-[10px] font-semibold text-gray-500 uppercase block">Min Core</span>
-          <strong className="text-xs text-gray-800 font-mono">{coreStats.minVal} {unit}</strong>
+          <strong className={`text-xs font-mono ${hasValidOceanData ? "text-gray-800" : "text-red-600 font-bold"}`}>
+            {coreStats.minVal} {unit}
+          </strong>
         </div>
         <div className="p-1.5 rounded-lg bg-teal-50 border border-teal-200 text-center">
           <span className="text-[10px] font-semibold text-teal-700 uppercase block">Mean Core</span>
-          <strong className="text-xs text-teal-900 font-mono font-bold">{coreStats.meanVal} {unit}</strong>
+          <strong className={`text-xs font-mono font-bold ${hasValidOceanData ? "text-teal-900" : "text-red-600"}`}>
+            {coreStats.meanVal} {unit}
+          </strong>
         </div>
         <div className="p-1.5 rounded-lg bg-gray-50 border border-gray-200 text-center">
           <span className="text-[10px] font-semibold text-gray-500 uppercase block">Max Core</span>
-          <strong className="text-xs text-gray-800 font-mono">{coreStats.maxVal} {unit}</strong>
+          <strong className={`text-xs font-mono ${hasValidOceanData ? "text-gray-800" : "text-red-600 font-bold"}`}>
+            {coreStats.maxVal} {unit}
+          </strong>
         </div>
       </div>
 
       {/* Land / Ocean Ratio & Footprint */}
       <div className="flex items-center justify-between px-2.5 py-1 rounded bg-gray-50 border border-gray-200 text-[11px] text-gray-600">
         <span>Ocean Coverage:</span>
-        <strong className="text-emerald-700 font-mono">{coreStats.oceanPct}% Marine Water</strong>
+        <strong className={`font-mono ${hasValidOceanData ? "text-emerald-700" : "text-red-600 font-bold"}`}>
+          {coreStats.oceanPct}% {hasValidOceanData ? "Marine Water" : "Continental Land (No Data)"}
+        </strong>
       </div>
     </div>
   );

@@ -5,7 +5,9 @@
    =================================================================== */
 
 .explorer-page {
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
   background-color: #f9fafb; /* Tailwind bg-gray-50 */
   display: flex;
   flex-direction: column;
@@ -15,50 +17,24 @@
 
 /* ── Top Page Header Bar (Below fixed Header) ── */
 .explorer-header-bar {
-  padding-top: 86px; /* Offset below fixed 72px navbar */
-  padding-left: 24px;
-  padding-right: 24px;
-  padding-bottom: 12px;
+  flex-shrink: 0;
+  padding-top: 98px; /* Clean offset below fixed 93px header */
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 8px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  position: relative;
+  z-index: 20;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.explorer-title-area {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.explorer-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  background-color: #ccfbf1; /* teal-100 */
-  color: #115e59; /* teal-800 */
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  width: fit-content;
-}
-
-.explorer-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #111827;
-  letter-spacing: -0.01em;
-  margin: 0;
-}
-
-.explorer-subtitle {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0;
+.explorer-header-bar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Basin Presets Bar */
@@ -66,7 +42,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .presets-label {
@@ -76,11 +52,12 @@
   color: #4b5563;
   letter-spacing: 0.05em;
   margin-right: 2px;
+  white-space: nowrap;
 }
 
 .preset-btn {
-  padding: 6px 12px;
-  font-size: 12px;
+  padding: 5px 10px;
+  font-size: 11px;
   font-weight: 600;
   border-radius: 8px;
   color: #4b5563;
@@ -121,28 +98,30 @@
 /* ── 3-Column Workspace Container ── */
 .explorer-workspace {
   flex: 1;
+  min-height: 0;
   display: flex;
-  gap: 16px;
-  padding: 0 24px 20px 24px;
-  height: calc(100vh - 170px);
-  min-height: 520px;
+  gap: 14px;
+  padding: 0 20px 14px 20px;
   overflow: hidden;
   position: relative;
 }
 
 /* Left Sidebar (Control Deck) */
 .explorer-sidebar {
-  width: 300px;
+  width: 295px;
   flex-shrink: 0;
+  height: 100%;
+  max-height: 100%;
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
@@ -371,6 +350,14 @@
   box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
 }
 
+.pulse-red-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+}
+
 /* Floating 4D Time Player (Bottom Center of Globe) */
 .viewport-time-player {
   position: absolute;
@@ -531,16 +518,20 @@
 
 /* ── Right Inspector Panel (Water Column / In-Situ Platform) ── */
 .explorer-inspector {
-  width: 320px;
+  width: 330px;
   flex-shrink: 0;
+  height: 100%;
+  max-height: 100%;
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid #e5e7eb;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
+  gap: 12px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
   animation: fade-in-panel 0.2s ease-out;

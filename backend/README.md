@@ -61,7 +61,7 @@ backend/
   - **Variables:** `thetao` (temperature), `so` (salinity), `uo` (eastward current), `vo` (northward current), `speed` ($\sqrt{u^2+v^2}$)
 - **Argo Profiling Floats (`argo_incois_indian_ocean_2026_index.csv` & 2,493 `.nc` files):**
   - 123 unique floats, physical measurements down to $2,000\text{ m}$, quality control flags (`1`=Good, `2`=Probably Good, etc.).
-- **Autonomous Gliders (`glider_2026_indian_ocean_index.csv` & 2,952 `.nc` files):**
+- **Autonomous Gliders (`glider_2026_indian_ocean_inde x.csv` & 2,952 `.nc` files):**
   - 2 gliders (`R6801558` and `R8901048`), high vertical resolution, temperature, salinity, and dissolved oxygen (`DOXY`, `MOLAR_DOXY`).
 
 ---

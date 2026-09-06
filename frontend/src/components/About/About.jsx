@@ -10,10 +10,10 @@ const About = () => {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 bg-teal-100 text-teal-800 text-xs font-bold rounded uppercase">
-              Smart India Hackathon • Problem Statement ID: 26067
+              MoES &amp; INCOIS Mission
             </span>
             <span className="text-xs text-gray-500 font-medium">
-              Theme: Disaster Management | Category: Software
+              Operational Oceanography | 3D Visualization Platform
             </span>
           </div>
           <h1 className="text-2xl font-bold text-gray-800">
@@ -63,7 +63,7 @@ const About = () => {
           </div>
         </div>
 
-        {/* Problem Statement Background & Key Gaps */}
+        {/* Operational Challenge Background & Key Gaps */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-800 mb-2">
             The Operational Challenge & Background

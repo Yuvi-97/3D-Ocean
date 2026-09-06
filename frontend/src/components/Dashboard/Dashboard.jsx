@@ -87,7 +87,7 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="inline-block px-3 py-1 bg-teal-500/30 text-teal-200 text-xs font-semibold rounded-full uppercase tracking-wider mb-2">
-                Problem Statement ID: 26067 | MoES & INCOIS
+                MoES &amp; INCOIS Fleet Network
               </span>
               <h2 className="text-2xl font-bold tracking-tight">
                 3D Ocean Model & In-Situ Observation Platform
@@ -349,7 +349,7 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* Problem Statement 26067 Key Capabilities Roadmap */}
+        {/* Operational Capabilities Overview */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
             <span className="text-2xl">🧊</span>

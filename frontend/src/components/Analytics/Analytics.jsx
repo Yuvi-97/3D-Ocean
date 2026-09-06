@@ -51,7 +51,7 @@ const Analytics = () => {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 bg-teal-100 text-teal-800 text-xs font-bold rounded uppercase">
-              Problem Statement 26067
+              Ocean Analytics
             </span>
             <span className="text-xs text-gray-500 font-medium">
               Ocean State Synthesis & Public Outreach

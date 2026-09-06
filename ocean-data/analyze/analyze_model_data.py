@@ -1,7 +1,7 @@
 import os
 import xarray as xr
 
-FILE = r"D:\3d-Ocean\ocean-data\data\model\cmems_indian_ocean_2026_06.nc"
+FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "model", "cmems_indian_ocean_2026_06.nc")
 
 ds = xr.open_dataset(FILE)
 

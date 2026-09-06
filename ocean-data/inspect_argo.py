@@ -2,7 +2,8 @@ import xarray as xr
 import pandas as pd
 import numpy as np
 
-FILE = r"D:\3d-Ocean\ocean-data\data\argo\R1902669_085.nc"
+import os
+FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "argo", "R1902669_085.nc")
 
 # Open Argo file
 ds = xr.open_dataset(FILE)

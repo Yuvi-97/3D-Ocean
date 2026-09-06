@@ -6,7 +6,7 @@ import xarray as xr
 # CONFIG
 # ============================================================
 
-ARGO_DIR = r"D:\3d-Ocean\ocean-data\data\argo"
+ARGO_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "argo")
 
 # ============================================================
 # FIND FILES

@@ -7,8 +7,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 FTP_HOST = "ftp.ifremer.fr"
 REMOTE_ROOT = "/ifremer/glider/v2"
 
-INDEX_FILE = r"D:\3d-Ocean\ocean-data\glider_prof_index.txt"
-OUTPUT_DIR = r"D:\3d-Ocean\ocean-data\data\glider"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+INDEX_FILE = os.path.join(SCRIPT_DIR, "glider_prof_index.txt")
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "data", "glider")
 
 # ============================================================
 # INDIAN OCEAN REGION
@@ -29,10 +30,25 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 
 # ============================================================
-# READ INDEX
+# ENSURE & READ INDEX
 # ============================================================
 
+def ensure_index_file():
+    if not os.path.exists(INDEX_FILE):
+        print("=" * 70)
+        print(f"Downloading glider_prof_index.txt from {FTP_HOST}...")
+        print("=" * 70)
+        ftp = ftplib.FTP(FTP_HOST, timeout=120)
+        ftp.login()
+        ftp.cwd(REMOTE_ROOT)
+        ftp.set_pasv(True)
+        with open(INDEX_FILE, "wb") as f:
+            ftp.retrbinary("RETR glider_prof_index.txt", f.write, blocksize=1024 * 1024)
+        ftp.quit()
+        print("Glider index downloaded successfully.")
+
 def read_index():
+    ensure_index_file()
 
     profiles = []
 

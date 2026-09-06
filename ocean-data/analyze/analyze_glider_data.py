@@ -6,7 +6,7 @@ import xarray as xr
 # CONFIG
 # ============================================================
 
-GLIDER_DIR = r"D:\3d-Ocean\ocean-data\data\glider"
+GLIDER_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "glider")
 
 # ============================================================
 # FIND FILES

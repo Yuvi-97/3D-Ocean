@@ -6,7 +6,7 @@ import os
 # CHANGE ONLY THIS
 # ============================================================
 
-NC_FILE = r"D:\3d-Ocean\ocean-data\data\glider\6801558\R6801558_20260203_001.nc"
+NC_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "glider", "6801558", "R6801558_20260203_001.nc")
 
 
 # ============================================================

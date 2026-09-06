@@ -11,7 +11,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 DATASET_ID = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 
-OUTPUT_DIR = r"D:\3d-Ocean\ocean-data\data\model"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "data", "model")
 
 # Indian Ocean bounding box
 MIN_LON = 20

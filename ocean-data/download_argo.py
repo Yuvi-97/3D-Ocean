@@ -13,7 +13,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 INDEX_URL = "https://data-argo.ifremer.fr/ar_index_global_prof.txt.gz"
 
-OUTPUT_DIR = r"D:\3d-Ocean\ocean-data\data\argo"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(SCRIPT_DIR, "data", "argo")
 
 # ------------------------------------------------------------
 # Indian Ocean approximate region

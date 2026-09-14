@@ -351,7 +351,7 @@ export default function GlobeViewer({
             outlineWidth: 2.5,
           },
           label: {
-            text: `⭕ 3D Cylinder Core (${selectionRadiusKm}km Radius)`,
+            text: `3D Cylinder Core (${selectionRadiusKm}km Radius)`,
             font: "bold 12px Roboto, sans-serif",
             fillColor: Cesium.Color.fromCssColorString("#115e59"),
             showBackground: true,
@@ -389,7 +389,7 @@ export default function GlobeViewer({
             outlineWidth: 2.5,
           },
           label: {
-            text: `📦 3D Cuboid Volume (${selectionRadiusKm * 2}x${selectionRadiusKm * 2}km)`,
+            text: `3D Cuboid Volume (${selectionRadiusKm * 2}x${selectionRadiusKm * 2}km)`,
             font: "bold 12px Roboto, sans-serif",
             fillColor: Cesium.Color.fromCssColorString("#115e59"),
             showBackground: true,
@@ -412,7 +412,7 @@ export default function GlobeViewer({
             outlineWidth: 3,
           },
           label: {
-            text: `📍 Sounding Station (${latNum.toFixed(2)}°N, ${lonNum.toFixed(2)}°E)`,
+            text: `Sounding Station (${latNum.toFixed(2)}°N, ${lonNum.toFixed(2)}°E)`,
             font: "bold 11px Roboto, sans-serif",
             fillColor: Cesium.Color.fromCssColorString("#115e59"),
             showBackground: true,

@@ -6,11 +6,7 @@ import logoImage from '../../Assets/logo.png';
 const Header = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [dataSourceInfo, setDataSourceInfo] = useState({
-    source: 'HUGGINGFACE',
-    repo: 'Yuvi2006pro/ocean-data',
-    online: true,
-  });
+  const [backendConnected, setBackendConnected] = useState(true);
 
   useEffect(() => {
     const intervalId = setInterval(() => setCurrentDateTime(new Date()), 60000);
@@ -18,29 +14,27 @@ const Header = () => {
   }, []);
 
   useEffect(() => {
-    const checkSource = async () => {
+    let isMounted = true;
+    const checkBackend = async () => {
       try {
         const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
         const rootUrl = apiUrl.replace(/\/api\/v1\/?$/, "");
         const res = await fetch(`${rootUrl}/health`);
-        if (res.ok) {
-          const data = await res.json();
-          const isHF = data.data_source === 'HUGGINGFACE' || data.provider === 'huggingface';
-          setDataSourceInfo({
-            source: data.data_source || 'LOCAL',
-            repo: isHF ? 'Yuvi2006pro/ocean-data' : null,
-            online: true,
-          });
-          console.log(
-            `%c[3D-Ocean] Live Backend Data Source: ${data.data_source || 'LOCAL'} ${isHF ? '(Yuvi2006pro/ocean-data)' : ''}`,
-            'color: #0d9488; font-weight: bold; font-size: 12px;'
-          );
+        if (isMounted) {
+          setBackendConnected(res.ok);
         }
       } catch (err) {
-        // Fallback gracefully
+        if (isMounted) {
+          setBackendConnected(false);
+        }
       }
     };
-    checkSource();
+    checkBackend();
+    const intervalId = setInterval(checkBackend, 30000);
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   const formatDateTime = (date) => {
@@ -85,27 +79,28 @@ const Header = () => {
       </nav>
 
       {/* Right Section */}
-      <div className="flex items-center space-x-4">
-        {/* Live Data Source Status Badge */}
-        {dataSourceInfo.source === 'HUGGINGFACE' ? (
-          <div
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold shadow-xs cursor-default select-none"
-            title="Active Data Source: Hugging Face Dataset (Yuvi2006pro/ocean-data)"
-          >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="font-mono">🤗 HF Dataset</span>
-          </div>
-        ) : (
-          <div
-            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold shadow-xs cursor-default select-none"
-            title="Active Data Source: Local Storage"
-          >
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            <span className="font-mono">💻 Local Data</span>
-          </div>
-        )}
+      <div className="flex items-center space-x-3.5">
+        {/* Date / Time */}
+        <p className="text-gray-500 font-normal text-xs tracking-wide hidden lg:block">
+          {formatDateTime(currentDateTime)}
+        </p>
 
-        <p className="text-gray-700 font-semibold text-sm tracking-wide hidden md:block">{formatDateTime(currentDateTime)}</p>
+        <span className="hidden lg:inline text-gray-300">|</span>
+
+        {/* Subtle & Professional Backend Connection Indicator */}
+        <div
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-gray-200 text-gray-600 text-xs font-medium select-none shadow-2xs"
+          title={backendConnected ? "Backend Server: Connected & Healthy" : "Backend Server: Offline / Reconnecting"}
+        >
+          <span
+            className={`w-2 h-2 rounded-full transition-colors ${
+              backendConnected ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.4)]" : "bg-amber-400 animate-pulse"
+            }`}
+          />
+          <span className="text-[11px] font-medium text-gray-600 tracking-tight">
+            {backendConnected ? "Backend Connected" : "Connecting..."}
+          </span>
+        </div>
 
         {/* Notification Dropdown */}
         <div className="relative">

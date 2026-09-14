@@ -36,6 +36,7 @@ import {
   FaChartLine,
   FaExclamationTriangle,
 } from "react-icons/fa";
+import { LuCylinder, LuBox, LuMapPin } from "react-icons/lu";
 import "./Explorer.css";
 
 export default function Explorer() {
@@ -323,7 +324,7 @@ export default function Explorer() {
           <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200 shadow-xs text-xs">
             <button
               type="button"
-              className={`px-2.5 py-1 rounded font-semibold transition-all text-xs ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold transition-all text-xs ${
                 probeMode === "cylinder"
                   ? "bg-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
@@ -334,11 +335,12 @@ export default function Explorer() {
               }}
               title="3D Cylindrical Ocean Core"
             >
-              ⭕ Cylinder
+              <LuCylinder className="text-sm" />
+              <span>Cylinder</span>
             </button>
             <button
               type="button"
-              className={`px-2.5 py-1 rounded font-semibold transition-all text-xs ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold transition-all text-xs ${
                 probeMode === "cuboid"
                   ? "bg-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
@@ -349,11 +351,12 @@ export default function Explorer() {
               }}
               title="3D Cuboid Volumetric Box"
             >
-              📦 Cuboid
+              <LuBox className="text-sm" />
+              <span>Cuboid</span>
             </button>
             <button
               type="button"
-              className={`px-2.5 py-1 rounded font-semibold transition-all text-xs ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-semibold transition-all text-xs ${
                 probeMode === "point"
                   ? "bg-teal-600 text-white shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
@@ -361,7 +364,8 @@ export default function Explorer() {
               onClick={() => setProbeMode("point")}
               title="Single-Point Sounding Station"
             >
-              📍 Point
+              <LuMapPin className="text-sm" />
+              <span>Point</span>
             </button>
           </div>
 
@@ -763,36 +767,39 @@ export default function Explorer() {
                     <div className="flex gap-1">
                       <button
                         type="button"
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
                           probeMode === "cylinder"
                             ? "bg-teal-600 text-white shadow-xs"
                             : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                         }`}
                         onClick={() => setProbeMode("cylinder")}
                       >
-                        ⭕ Cylinder
+                        <LuCylinder className="text-xs" />
+                        <span>Cylinder</span>
                       </button>
                       <button
                         type="button"
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
                           probeMode === "cuboid"
                             ? "bg-teal-600 text-white shadow-xs"
                             : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                         }`}
                         onClick={() => setProbeMode("cuboid")}
                       >
-                        📦 Cuboid
+                        <LuBox className="text-xs" />
+                        <span>Cuboid</span>
                       </button>
                       <button
                         type="button"
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold transition-all ${
                           probeMode === "point"
                             ? "bg-teal-600 text-white shadow-xs"
                             : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
                         }`}
                         onClick={() => setProbeMode("point")}
                       >
-                        📍 Point
+                        <LuMapPin className="text-xs" />
+                        <span>Point</span>
                       </button>
                     </div>
                   </div>

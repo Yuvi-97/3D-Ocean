@@ -32,6 +32,8 @@ class InSituInventory(BaseModel):
 
 class DatasetOverviewResponse(BaseModel):
     dataset: str
+    data_source: str = "LOCAL"
+    dataset_repo: Optional[str] = None
     spatial_coverage: SpatialCoverage
     temporal_coverage: TemporalCoverage
     depth_levels_count: int

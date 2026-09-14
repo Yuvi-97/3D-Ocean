@@ -6,10 +6,41 @@ import logoImage from '../../Assets/logo.png';
 const Header = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [dataSourceInfo, setDataSourceInfo] = useState({
+    source: 'HUGGINGFACE',
+    repo: 'Yuvi2006pro/ocean-data',
+    online: true,
+  });
 
   useEffect(() => {
     const intervalId = setInterval(() => setCurrentDateTime(new Date()), 60000);
     return () => clearInterval(intervalId);
+  }, []);
+
+  useEffect(() => {
+    const checkSource = async () => {
+      try {
+        const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:8000/api/v1";
+        const rootUrl = apiUrl.replace(/\/api\/v1\/?$/, "");
+        const res = await fetch(`${rootUrl}/health`);
+        if (res.ok) {
+          const data = await res.json();
+          const isHF = data.data_source === 'HUGGINGFACE' || data.provider === 'huggingface';
+          setDataSourceInfo({
+            source: data.data_source || 'LOCAL',
+            repo: isHF ? 'Yuvi2006pro/ocean-data' : null,
+            online: true,
+          });
+          console.log(
+            `%c[3D-Ocean] Live Backend Data Source: ${data.data_source || 'LOCAL'} ${isHF ? '(Yuvi2006pro/ocean-data)' : ''}`,
+            'color: #0d9488; font-weight: bold; font-size: 12px;'
+          );
+        }
+      } catch (err) {
+        // Fallback gracefully
+      }
+    };
+    checkSource();
   }, []);
 
   const formatDateTime = (date) => {
@@ -54,8 +85,27 @@ const Header = () => {
       </nav>
 
       {/* Right Section */}
-      <div className="flex items-center space-x-6">
-        <p className="text-gray-700 font-semibold text-sm tracking-wide">{formatDateTime(currentDateTime)}</p>
+      <div className="flex items-center space-x-4">
+        {/* Live Data Source Status Badge */}
+        {dataSourceInfo.source === 'HUGGINGFACE' ? (
+          <div
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold shadow-xs cursor-default select-none"
+            title="Active Data Source: Hugging Face Dataset (Yuvi2006pro/ocean-data)"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span className="font-mono">🤗 HF Dataset</span>
+          </div>
+        ) : (
+          <div
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-xs font-semibold shadow-xs cursor-default select-none"
+            title="Active Data Source: Local Storage"
+          >
+            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+            <span className="font-mono">💻 Local Data</span>
+          </div>
+        )}
+
+        <p className="text-gray-700 font-semibold text-sm tracking-wide hidden md:block">{formatDateTime(currentDateTime)}</p>
 
         {/* Notification Dropdown */}
         <div className="relative">

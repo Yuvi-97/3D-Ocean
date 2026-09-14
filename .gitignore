@@ -41,6 +41,7 @@ MANIFEST
 .coverage
 .coverage.*
 .cache
+.hf_cache/
 nosetests.xml
 coverage.xml
 htmlcov/

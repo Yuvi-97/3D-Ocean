@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: incois-ocean-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATA_SOURCE
+        value: huggingface
+      - key: HF_DATASET_REPO
+        value: Yuvi2006pro/ocean-data
+      - key: HF_REVISION
+        value: main
+      - key: CACHE_ENABLED
+        value: "true"
+      - key: PYTHON_VERSION
+        value: "3.11.9"

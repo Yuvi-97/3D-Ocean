@@ -145,11 +145,14 @@ pip install -r requirements.txt
 ```
 
 ### 2. Configure Environment (Optional)
-Dataset locations default to `D:\3d-Ocean\ocean-data\data\...`. You can override them via environment variables:
+Dataset locations automatically resolve relative to the project root (`ocean-data/data/...`). Teammates do not need to configure machine-specific paths. If you wish to override them:
 ```bash
-$env:CMEMS_MODEL_PATH="D:\3d-Ocean\ocean-data\data\model\cmems_indian_ocean_2026_06.nc"
-$env:ARGO_DATA_DIR="D:\3d-Ocean\ocean-data\data\argo"
-$env:GLIDER_DATA_DIR="D:\3d-Ocean\ocean-data\data\glider"
+# In PowerShell (Optional overrides):
+$env:LOCAL_DATA_ROOT="../ocean-data/data"
+# Or granular overrides:
+$env:CMEMS_MODEL_PATH="../ocean-data/data/model/cmems_indian_ocean_2026_06.nc"
+$env:ARGO_DATA_DIR="../ocean-data/data/argo"
+$env:GLIDER_DATA_DIR="../ocean-data/data/glider"
 ```
 
 ### 3. Run Development Server

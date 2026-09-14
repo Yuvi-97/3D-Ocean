@@ -15,6 +15,7 @@ import numpy as np
 import xarray as xr
 
 from ..config import settings
+from ..providers import get_data_provider, cache
 from ..utils.serializers import sanitize_value
 from ..utils.geo import parse_bbox
 from ..schemas.glider import (
@@ -29,37 +30,40 @@ class GliderService:
     """Service for querying autonomous underwater gliders index and profiles."""
 
     def __init__(self, index_csv: Optional[str] = None, data_dir: Optional[str] = None):
-        self.index_csv = index_csv or settings.GLIDER_INDEX_CSV
-        self.data_dir = data_dir or settings.GLIDER_DIR
+        self.index_csv = index_csv
+        self.data_dir = data_dir
         self.df: Optional[pd.DataFrame] = None
         self._load_index()
 
     def _load_index(self):
-        """Loads and indexes the glider CSV index into memory."""
-        path = Path(self.index_csv)
-        if not path.exists():
-            logger.error(f"Glider index CSV not found at: {self.index_csv}")
-            return
-        
+        """Loads and indexes the glider CSV index into memory via DataProvider or local path."""
         try:
-            df = pd.read_csv(self.index_csv)
-            df["wmo"] = df["wmo"].astype(str)
-            df["profile_id"] = df["file"].apply(
-                lambda f: os.path.basename(str(f)).replace(".nc", "")
-            )
-            # Parse date strings formatted as 20260101013219
-            df["date_dt"] = pd.to_datetime(df["date"].astype(str), format="%Y%m%d%H%M%S", errors="coerce")
-            self.df = df
-            logger.info(f"Loaded Glider index: {len(df)} profiles across {df['wmo'].nunique()} gliders.")
+            if self.index_csv:
+                df = pd.read_csv(self.index_csv)
+                df["wmo"] = df["wmo"].astype(str)
+                df["profile_id"] = df["file"].apply(
+                    lambda f: os.path.basename(str(f)).replace(".nc", "")
+                )
+                df["date_dt"] = pd.to_datetime(df["date"].astype(str), format="%Y%m%d%H%M%S", errors="coerce")
+                self.df = df
+            else:
+                provider = get_data_provider()
+                self.df = provider.get_glider_index()
+
+            if self.df is not None:
+                logger.info(
+                    f"Loaded Glider index ({settings.DATA_SOURCE.upper()} mode): "
+                    f"{len(self.df)} profiles across {self.df['wmo'].nunique()} gliders."
+                )
         except Exception as e:
-            logger.error(f"Error loading Glider index CSV: {e}")
+            logger.error(f"Error loading Glider index: {e}")
             self.df = None
 
     def ensure_index(self):
         if self.df is None:
             self._load_index()
         if self.df is None:
-            raise RuntimeError(f"Glider index data could not be loaded from {self.index_csv}")
+            raise RuntimeError(f"Glider index data could not be loaded (source: {settings.DATA_SOURCE})")
 
     def get_gliders(self) -> GlidersResponse:
         """Returns inventory and deployment status for both gliders."""
@@ -147,32 +151,42 @@ class GliderService:
 
     def get_profile(self, glider_id: str, profile_id: str) -> GliderProfileResponse:
         """
-        Extracts multi-sensor vertical profile from glider NetCDF file (including Dissolved Oxygen).
+        Extracts multi-sensor vertical profile from glider NetCDF file via DataProvider.
         """
         self.ensure_index()
         clean_id = profile_id.replace(".nc", "")
         clean_wmo = str(glider_id).replace("R", "")
 
-        # Try wmo subdirectory first: data/glider/<wmo>/<profile_id>.nc
-        file_path = Path(self.data_dir) / clean_wmo / f"{clean_id}.nc"
-        
-        if not file_path.exists():
-            # Try directly in data/glider/<profile_id>.nc
-            file_path = Path(self.data_dir) / f"{clean_id}.nc"
-
-        if not file_path.exists():
-            # Try searching dataframe for exact file match
-            row = self.df[self.df["profile_id"] == clean_id]
-            if not row.empty:
-                fname = os.path.basename(row.iloc[0]["file"])
-                wmo_val = str(row.iloc[0]["wmo"])
-                file_path = Path(self.data_dir) / wmo_val / fname
-
-        if not file_path.exists():
-            raise FileNotFoundError(f"Glider NetCDF profile file not found for: {profile_id}")
+        cache_key = f"glider_profile:{settings.DATA_SOURCE}:{clean_wmo}:{clean_id}"
+        cached_resp = cache.get(cache_key)
+        if cached_resp is not None:
+            logger.debug(f"Provider: {settings.DATA_SOURCE} | Glider profile: {clean_id} | Cache: HIT")
+            return cached_resp
 
         try:
-            with xr.open_dataset(file_path) as ds:
+            if self.data_dir:
+                file_path = Path(self.data_dir) / clean_wmo / f"{clean_id}.nc"
+                if not file_path.exists():
+                    file_path = Path(self.data_dir) / f"{clean_id}.nc"
+                if not file_path.exists() and self.df is not None:
+                    row = self.df[self.df["profile_id"] == clean_id]
+                    if not row.empty:
+                        fname = os.path.basename(row.iloc[0]["file"])
+                        wmo_val = str(row.iloc[0]["wmo"])
+                        file_path = Path(self.data_dir) / wmo_val / fname
+                if not file_path.exists():
+                    raise FileNotFoundError(f"Glider NetCDF profile file not found for: {profile_id}")
+                ds = xr.open_dataset(file_path)
+            else:
+                provider = get_data_provider()
+                rel_path = None
+                if self.df is not None:
+                    row = self.df[self.df["profile_id"] == clean_id]
+                    if not row.empty:
+                        rel_path = str(row.iloc[0]["file"])
+                ds = provider.get_glider_profile_dataset(glider_id=clean_wmo, profile_id=clean_id, file_rel_path=rel_path)
+
+            with ds:
                 lat = float(ds["LATITUDE"].values[0]) if "LATITUDE" in ds else -12.83
                 lon = float(ds["LONGITUDE"].values[0]) if "LONGITUDE" in ds else 45.40
                 
@@ -226,7 +240,7 @@ class GliderService:
                 levels.sort(key=lambda x: x["depth_m"])
                 max_p = max([lvl["depth_m"] for lvl in levels]) if levels else None
 
-                return GliderProfileResponse(
+                resp = GliderProfileResponse(
                     profile_id=clean_id,
                     glider_id=clean_wmo,
                     timestamp=time_val or "2026-01-01T01:32:19",
@@ -235,8 +249,13 @@ class GliderService:
                     levels_count=len(levels),
                     data=[GliderProfileLevel(**lvl) for lvl in levels],
                 )
+
+                cache.set(cache_key, resp)
+                logger.debug(f"Provider: {settings.DATA_SOURCE} | Glider profile: {clean_id} | Cache: MISS")
+                return resp
+
         except Exception as e:
-            logger.error(f"Error reading Glider NetCDF {file_path}: {e}")
+            logger.error(f"Error reading Glider NetCDF for {clean_id}: {e}")
             raise RuntimeError(f"Failed to read Glider profile {profile_id}: {e}")
 
 # Singleton accessor
@@ -247,3 +266,8 @@ def get_glider_service() -> GliderService:
     if _glider_service_instance is None:
         _glider_service_instance = GliderService()
     return _glider_service_instance
+
+def reset_glider_service() -> None:
+    """Resets the singleton GliderService instance."""
+    global _glider_service_instance
+    _glider_service_instance = None

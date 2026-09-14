@@ -1,8 +1,16 @@
 import os
+import sys
 import copernicusmarine
 from datetime import datetime
 from calendar import monthrange
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+# Ensure UTF-8 output encoding across all terminals (Windows cmd/PowerShell & Linux)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 
 # ============================================================
@@ -99,10 +107,10 @@ def download_month(year, month, index):
     )
 
     # --------------------------------------------------------
-    # Skip if already downloaded
+    # Skip if already downloaded (verify file is not corrupted/empty)
     # --------------------------------------------------------
 
-    if os.path.exists(output_path):
+    if os.path.exists(output_path) and os.path.getsize(output_path) > 10 * 1024 * 1024:
 
         size_mb = os.path.getsize(output_path) / (1024 * 1024)
 
@@ -262,21 +270,21 @@ with ThreadPoolExecutor(
         if status == "SUCCESS":
 
             print(
-                f"\n✓ [{index}/{len(months)}] "
-                f"{month_name} COMPLETE — {info}"
+                f"\n[OK] [{index}/{len(months)}] "
+                f"{month_name} COMPLETE - {info}"
             )
 
         elif status == "EXISTING":
 
             print(
-                f"\n→ [{index}/{len(months)}] "
-                f"{month_name} ALREADY EXISTS — {info}"
+                f"\n[SKIP] [{index}/{len(months)}] "
+                f"{month_name} ALREADY EXISTS - {info}"
             )
 
         else:
 
             print(
-                f"\n✗ [{index}/{len(months)}] "
+                f"\n[FAIL] [{index}/{len(months)}] "
                 f"{month_name} FAILED"
             )
 

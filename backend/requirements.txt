@@ -13,6 +13,8 @@ netCDF4
 numpy
 scipy
 pandas
+huggingface_hub
+python-dotenv
 
 # Testing & Client
 pytest

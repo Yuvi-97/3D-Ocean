@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from ..config import settings
+from ..providers import get_data_provider, cache
 from ..utils.serializers import sanitize_value
 from ..utils.geo import haversine_distance_km, parse_bbox, interpolate_line
 from ..schemas.metadata import (
@@ -47,24 +48,28 @@ class ModelService:
     _instance: Optional["ModelService"] = None
 
     def __init__(self, nc_path: Optional[str] = None):
-        self.nc_path = nc_path or settings.MODEL_NETCDF_PATH
+        self.nc_path = nc_path
         self.ds: Optional[xr.Dataset] = None
         self._load_dataset()
 
     def _load_dataset(self):
-        """Opens the NetCDF dataset lazily with memory-mapping."""
-        path = Path(self.nc_path)
-        if not path.exists():
-            logger.error(f"CMEMS NetCDF file does not exist at: {self.nc_path}")
-            return
-        
+        """Opens the NetCDF dataset lazily via DataProvider or explicit path."""
         try:
-            # Open without loading all data arrays into memory
-            self.ds = xr.open_dataset(self.nc_path)
-            logger.info(
-                f"CMEMS NetCDF opened successfully: dims={dict(self.ds.sizes)}, "
-                f"vars={list(self.ds.data_vars.keys())}"
-            )
+            if self.nc_path:
+                path = Path(self.nc_path)
+                if not path.exists():
+                    logger.error(f"CMEMS NetCDF file does not exist at: {self.nc_path}")
+                    return
+                self.ds = xr.open_dataset(self.nc_path)
+            else:
+                provider = get_data_provider()
+                self.ds = provider.get_model_dataset()
+
+            if self.ds is not None:
+                logger.info(
+                    f"CMEMS NetCDF ready ({settings.DATA_SOURCE.upper()} mode): "
+                    f"dims={dict(self.ds.sizes)}, vars={list(self.ds.data_vars.keys())}"
+                )
         except Exception as e:
             logger.error(f"Failed to open CMEMS NetCDF dataset: {e}")
             self.ds = None
@@ -74,7 +79,7 @@ class ModelService:
         if self.ds is None:
             self._load_dataset()
         if self.ds is None:
-            raise RuntimeError(f"CMEMS NetCDF dataset could not be opened from {self.nc_path}")
+            raise RuntimeError(f"CMEMS NetCDF dataset could not be opened (source: {settings.DATA_SOURCE})")
 
     def get_overview(self, argo_floats: int = 123, argo_profs: int = 2493,
                      gliders: int = 2, glider_profs: int = 2958) -> DatasetOverviewResponse:
@@ -127,6 +132,8 @@ class ModelService:
 
         return DatasetOverviewResponse(
             dataset="CMEMS Global Ocean Physics Analysis & Forecast (1/12°)",
+            data_source=settings.DATA_SOURCE.upper(),
+            dataset_repo=settings.HF_DATASET_REPO if settings.DATA_SOURCE == "huggingface" else "local_filesystem",
             spatial_coverage=SpatialCoverage(
                 lat_min=float(lats.min()),
                 lat_max=float(lats.max()),
@@ -194,6 +201,15 @@ class ModelService:
         Retrieves a 2D horizontal slice of ocean data at specified time and depth.
         Supports downsampling stride and geographic bounding box filtering.
         """
+        cache_key = f"slice:{settings.DATA_SOURCE}:{variable}:{time_index}:{depth_index}:{stride}:{bbox}"
+        cached_res = cache.get(cache_key)
+        if cached_res is not None:
+            logger.debug(
+                f"Provider: {settings.DATA_SOURCE} | Dataset: model | Variable: {variable} | "
+                f"Requested time: {time_index} | Requested depth: {depth_index} | Cache: HIT"
+            )
+            return cached_res
+
         self.ensure_dataset()
         ds = self.ds
 
@@ -251,7 +267,7 @@ class ModelService:
             for row in vals
         ]
 
-        return ModelSliceResponse(
+        response = ModelSliceResponse(
             variable=variable,
             unit=unit,
             time_index=time_index,
@@ -266,6 +282,14 @@ class ModelService:
             mean_value=round(mean_v, 3) if mean_v is not None else None,
             values=cleaned_values,
         )
+
+        cache.set(cache_key, response)
+        logger.debug(
+            f"Provider: {settings.DATA_SOURCE} | Dataset: model | Variable: {variable} | "
+            f"Requested time: {time_index} | Requested depth: {depth_index} | "
+            f"Subset size: {len(lats)}x{len(lons)} | Cache: MISS"
+        )
+        return response
 
     def get_point_profile(
         self,
@@ -492,3 +516,8 @@ def get_model_service() -> ModelService:
     if _model_service_instance is None:
         _model_service_instance = ModelService()
     return _model_service_instance
+
+def reset_model_service() -> None:
+    """Resets the singleton ModelService instance."""
+    global _model_service_instance
+    _model_service_instance = None

@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Header from "../Header/Header";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import img1 from "../../SliderImage/img1.jpg";
 
 const Dashboard = () => {
-  // Slider state
-  const images = [
-    "https://www.india.gov.in/sites/upload_files/npi/files/pm-suryaghar_0.jpg",
-    "https://media.gettyimages.com/id/1244355897/photo/new-delhi-india-a-general-view-of-connaught-place-covered-with-smog-due-to-air-pollution.jpg?s=612x612&w=0&k=20&c=qTsz5n4nmy4XcpwmxxPRQEKpHtnpKRyNKwtFMRgvpUg=",
-    "https://www.india.gov.in/sites/upload_files/npi/files/Swachhata_Hi_Seva_2024.jpg",
-    "https://powermin.gov.in/sites/default/files/styles/slider_1024x422/public/UJALA1.png?itok=YGftv199",
-  ];
+  // Slider state using local images from SliderImage folder
+  const images = [img1];
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    if (images.length <= 1) return;
     const id = setInterval(() => {
       if (!isPaused) setCurrentIndex((i) => (i + 1) % images.length);
     }, 4000);
@@ -50,33 +47,37 @@ const Dashboard = () => {
             ))}
           </div>
 
-          <button
-            onClick={handlePrev}
-            aria-label="Previous slide"
-            className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white px-2 py-2 rounded-full shadow focus:outline-none"
-          >
-            <FaChevronLeft />
-          </button>
-          <button
-            onClick={handleNext}
-            aria-label="Next slide"
-            className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white px-2 py-2 rounded-full shadow focus:outline-none"
-          >
-            <FaChevronRight />
-          </button>
-
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
-            {images.map((_, idx) => (
+          {images.length > 1 && (
+            <>
               <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  idx === currentIndex ? "bg-teal-600" : "bg-white/70"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
+                onClick={handlePrev}
+                aria-label="Previous slide"
+                className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white px-2 py-2 rounded-full shadow focus:outline-none"
+              >
+                <FaChevronLeft />
+              </button>
+              <button
+                onClick={handleNext}
+                aria-label="Next slide"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white px-2 py-2 rounded-full shadow focus:outline-none"
+              >
+                <FaChevronRight />
+              </button>
+
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                {images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      idx === currentIndex ? "bg-teal-600" : "bg-white/70"
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

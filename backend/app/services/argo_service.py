@@ -15,6 +15,7 @@ import numpy as np
 import xarray as xr
 
 from ..config import settings
+from ..providers import get_data_provider, cache
 from ..utils.serializers import sanitize_value
 from ..utils.geo import parse_bbox
 from ..schemas.argo import (
@@ -29,39 +30,42 @@ class ArgoService:
     """Service for querying Argo profiling floats index and profile NetCDFs."""
 
     def __init__(self, index_csv: Optional[str] = None, data_dir: Optional[str] = None):
-        self.index_csv = index_csv or settings.ARGO_INDEX_CSV
-        self.data_dir = data_dir or settings.ARGO_DIR
+        self.index_csv = index_csv
+        self.data_dir = data_dir
         self.df: Optional[pd.DataFrame] = None
         self._load_index()
 
     def _load_index(self):
-        """Loads and indexes the Argo float CSV into memory."""
-        path = Path(self.index_csv)
-        if not path.exists():
-            logger.error(f"Argo index CSV not found at: {self.index_csv}")
-            return
-        
+        """Loads and indexes the Argo float CSV into memory via DataProvider or local path."""
         try:
-            df = pd.read_csv(self.index_csv)
-            # Extract WMO ID from file path e.g. "incois/1902669/profiles/R1902669_085.nc"
-            df["wmo"] = df["file"].apply(
-                lambda f: f.split("/")[1] if "/" in str(f) else str(f).split("_")[0].replace("R", "").replace("D", "")
-            )
-            df["profile_id"] = df["file"].apply(
-                lambda f: os.path.basename(str(f)).replace(".nc", "")
-            )
-            df["date_dt"] = pd.to_datetime(df["date"], errors="coerce")
-            self.df = df
-            logger.info(f"Loaded Argo index: {len(df)} profiles across {df['wmo'].nunique()} unique floats.")
+            if self.index_csv:
+                df = pd.read_csv(self.index_csv)
+                df["wmo"] = df["file"].apply(
+                    lambda f: f.split("/")[1] if "/" in str(f) else str(f).split("_")[0].replace("R", "").replace("D", "")
+                )
+                df["profile_id"] = df["file"].apply(
+                    lambda f: os.path.basename(str(f)).replace(".nc", "")
+                )
+                df["date_dt"] = pd.to_datetime(df["date"], errors="coerce")
+                self.df = df
+            else:
+                provider = get_data_provider()
+                self.df = provider.get_argo_index()
+
+            if self.df is not None:
+                logger.info(
+                    f"Loaded Argo index ({settings.DATA_SOURCE.upper()} mode): "
+                    f"{len(self.df)} profiles across {self.df['wmo'].nunique()} unique floats."
+                )
         except Exception as e:
-            logger.error(f"Error loading Argo index CSV: {e}")
+            logger.error(f"Error loading Argo index: {e}")
             self.df = None
 
     def ensure_index(self):
         if self.df is None:
             self._load_index()
         if self.df is None:
-            raise RuntimeError(f"Argo index data could not be loaded from {self.index_csv}")
+            raise RuntimeError(f"Argo index data could not be loaded (source: {settings.DATA_SOURCE})")
 
     def get_floats(self, active_only: bool = True, bbox: Optional[str] = None) -> ArgoFloatsResponse:
         """Returns inventory of unique Argo floats with latest position and profile counts."""
@@ -137,24 +141,40 @@ class ArgoService:
 
     def get_profile(self, profile_id: str, qc_filter: Optional[List[int]] = None) -> ArgoProfileResponse:
         """
-        Reads physical CTD profile from the actual Argo NetCDF file on disk.
+        Reads physical CTD profile from the actual Argo NetCDF file via DataProvider.
         """
         self.ensure_index()
         clean_id = profile_id.replace(".nc", "")
-        file_path = Path(self.data_dir) / f"{clean_id}.nc"
 
-        if not file_path.exists():
-            # Try searching by exact profile_id in index to find exact file
-            row = self.df[self.df["profile_id"] == clean_id]
-            if not row.empty:
-                fname = os.path.basename(row.iloc[0]["file"])
-                file_path = Path(self.data_dir) / fname
-
-        if not file_path.exists():
-            raise FileNotFoundError(f"Argo profile NetCDF file not found for: {profile_id}")
+        cache_key = f"argo_profile:{settings.DATA_SOURCE}:{clean_id}"
+        cached_resp = cache.get(cache_key)
+        if cached_resp is not None and qc_filter is None:
+            logger.debug(f"Provider: {settings.DATA_SOURCE} | Argo profile: {clean_id} | Cache: HIT")
+            return cached_resp
 
         try:
-            with xr.open_dataset(file_path) as ds:
+            if self.data_dir:
+                file_path = Path(self.data_dir) / f"{clean_id}.nc"
+                if not file_path.exists() and self.df is not None:
+                    row = self.df[self.df["profile_id"] == clean_id]
+                    if not row.empty:
+                        fname = os.path.basename(row.iloc[0]["file"])
+                        file_path = Path(self.data_dir) / fname
+                if not file_path.exists():
+                    raise FileNotFoundError(f"Argo profile NetCDF file not found for: {profile_id}")
+                ds = xr.open_dataset(file_path)
+            else:
+                provider = get_data_provider()
+                wmo = ""
+                rel_path = None
+                if self.df is not None:
+                    row = self.df[self.df["profile_id"] == clean_id]
+                    if not row.empty:
+                        wmo = str(row.iloc[0]["wmo"])
+                        rel_path = str(row.iloc[0]["file"])
+                ds = provider.get_argo_profile_dataset(wmo_id=wmo, profile_id=clean_id, file_rel_path=rel_path)
+
+            with ds:
                 # Extract coordinates and profile metadata
                 lat = float(ds["LATITUDE"].values[0]) if "LATITUDE" in ds else 0.0
                 lon = float(ds["LONGITUDE"].values[0]) if "LONGITUDE" in ds else 0.0
@@ -183,12 +203,11 @@ class ArgoService:
                     qc_raw = ds[da_name].values[0]
                     res = []
                     for q in qc_raw:
-                        if isinstance(q, bytes):
-                            q_str = q.decode("utf-8").strip()
-                            res.append(int(q_str) if q_str.isdigit() else None)
-                        elif isinstance(q, (int, np.integer)):
-                            res.append(int(q))
-                        else:
+                        try:
+                            # If byte string b'1'
+                            val = int(q.decode("utf-8") if isinstance(q, (bytes, np.bytes_)) else q)
+                            res.append(val)
+                        except Exception:
                             res.append(None)
                     return res
 
@@ -196,7 +215,7 @@ class ArgoService:
                 temp_qc = decode_qc("TEMP_QC")
                 psal_qc = decode_qc("PSAL_QC")
 
-                # Combine into sorted levels (ascending pressure)
+                # Build level items
                 raw_levels = []
                 for i in range(len(pres)):
                     p = float(pres[i]) if not np.isnan(pres[i]) else None
@@ -206,7 +225,6 @@ class ArgoService:
                     if p is None or p > 90000:
                         continue
 
-                    # Apply QC filter if requested
                     t_qc = temp_qc[i] if i < len(temp_qc) else None
                     if qc_filter and t_qc is not None and t_qc not in qc_filter:
                         continue
@@ -223,15 +241,11 @@ class ArgoService:
                         "psal_adjusted": round(float(psal_adj[i]), 3) if (psal_adj is not None and not np.isnan(psal_adj[i])) else None,
                     })
 
-                # Sort levels by pressure ascending
                 raw_levels.sort(key=lambda x: x["pres"])
 
-                # Extract WMO from profile_id
-                wmo = clean_id.replace("R", "").replace("D", "").split("_")[0]
-
-                return ArgoProfileResponse(
+                resp = ArgoProfileResponse(
                     profile_id=clean_id,
-                    wmo_id=wmo,
+                    wmo_id=str(wmo) if wmo else clean_id.split("_")[0].replace("R", "").replace("D", ""),
                     timestamp=time_str or "2026-06-15T12:00:00",
                     location={"lat": round(lat, 4), "lon": round(lon, 4)},
                     profile_qc={
@@ -241,8 +255,14 @@ class ArgoService:
                     levels_count=len(raw_levels),
                     data=[ArgoProfileLevel(**lvl) for lvl in raw_levels],
                 )
+
+                if qc_filter is None:
+                    cache.set(cache_key, resp)
+                logger.debug(f"Provider: {settings.DATA_SOURCE} | Argo profile: {clean_id} | Cache: MISS")
+                return resp
+
         except Exception as e:
-            logger.error(f"Error reading Argo NetCDF file {file_path}: {e}")
+            logger.error(f"Error reading Argo NetCDF for {clean_id}: {e}")
             raise RuntimeError(f"Failed to read Argo profile {profile_id}: {e}")
 
 # Singleton accessor
@@ -253,3 +273,8 @@ def get_argo_service() -> ArgoService:
     if _argo_service_instance is None:
         _argo_service_instance = ArgoService()
     return _argo_service_instance
+
+def reset_argo_service() -> None:
+    """Resets the singleton ArgoService instance."""
+    global _argo_service_instance
+    _argo_service_instance = None

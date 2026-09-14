@@ -5,6 +5,7 @@
 # Core Framework
 fastapi
 uvicorn
+gunicorn
 pydantic
 
 # Data Processing & NetCDF

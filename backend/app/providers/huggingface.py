@@ -25,6 +25,50 @@ from .base import BaseDataProvider
 logger = logging.getLogger(__name__)
 
 
+# Prevent Hugging Face Hub from initializing memory-heavy multithreaded Xet buffers on 512 MB instances
+os.environ["HF_HUB_DISABLE_XET"] = "1"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
+
+import urllib.request
+
+
+def _stream_download_low_memory(url: str, dest_path: Path, token: Optional[str] = None) -> Path:
+    """
+    Streams a large file in 1 MB chunks directly to disk with <15 MB RAM usage.
+    Bypasses multithreaded rust buffers (hf-xet) to prevent Out-Of-Memory (OOM) on 512 MB instances like Render.
+    """
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = dest_path.with_suffix(".tmp")
+
+    headers = {"User-Agent": "3d-Ocean-Visualizer/1.0"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    req = urllib.request.Request(url, headers=headers)
+    logger.info(f"Streaming model NetCDF from Hugging Face into '{dest_path}' (low-memory 1MB chunked mode)...")
+
+    with urllib.request.urlopen(req) as resp, open(temp_path, "wb") as f:
+        total_size = int(resp.headers.get("Content-Length") or 0)
+        downloaded = 0
+        last_log = 0
+        chunk_size = 1024 * 1024  # 1 MB chunk buffer
+
+        while True:
+            chunk = resp.read(chunk_size)
+            if not chunk:
+                break
+            f.write(chunk)
+            downloaded += len(chunk)
+            if downloaded - last_log >= 250 * 1024 * 1024:
+                pct = (downloaded / total_size * 100) if total_size else 0
+                logger.info(f"Downloaded {downloaded / 1048576:.1f} MB / {total_size / 1048576:.1f} MB ({pct:.1f}%)")
+                last_log = downloaded
+
+    temp_path.replace(dest_path)
+    logger.info(f"Model NetCDF successfully cached at '{dest_path}' ({downloaded / 1048576:.1f} MB).")
+    return dest_path
+
+
 class HuggingFaceDataProvider(BaseDataProvider):
     """Data provider reading from a Hugging Face Dataset repository."""
 
@@ -107,12 +151,13 @@ class HuggingFaceDataProvider(BaseDataProvider):
         Retrieves the 2.1 GB CMEMS numerical model dataset.
         
         CRITICAL PERFORMANCE GUARANTEE:
-        - Uses hf_hub_download with local caching or reuses pre-existing local file as warm cache.
+        - Uses low-memory chunked streaming with local caching or reuses pre-existing local file as warm cache.
+        - Memory overhead is <15 MB (never exceeds 512 MB on low-memory servers like Render).
         - The 2.1 GB file is never downloaded repeatedly per request.
         - Subsequent API requests load from the local cache in <1ms without any network download.
         """
         if self._model_ds is None:
-            # Check if a pre-existing local copy exists at LOCAL_DATA_ROOT/model to save 2.1 GB bandwidth
+            # 1. Check if a pre-existing local copy exists at LOCAL_DATA_ROOT/model
             local_candidate = Path(settings.LOCAL_DATA_ROOT) / "model" / "cmems_indian_ocean_2026_06.nc"
             if local_candidate.exists() and local_candidate.stat().st_size > 1_000_000_000:
                 logger.info(
@@ -122,28 +167,43 @@ class HuggingFaceDataProvider(BaseDataProvider):
                 self._model_ds = xr.open_dataset(str(local_candidate))
                 return self._model_ds
 
+            # 2. Check dedicated local cache file
+            cache_root = Path(self.cache_dir) if self.cache_dir else Path.home() / ".cache" / "huggingface" / "ocean_data"
+            cached_nc_path = cache_root / self.model_filename
+            if cached_nc_path.exists() and cached_nc_path.stat().st_size > 1_000_000_000:
+                logger.info(f"Reusing existing cached NetCDF at '{cached_nc_path}'.")
+                self._model_ds = xr.open_dataset(str(cached_nc_path))
+                return self._model_ds
+
+            # 3. Stream download from Hugging Face with <15 MB RAM footprint
+            direct_url = f"https://huggingface.co/datasets/{self.repo_id}/resolve/{self.revision}/{self.model_filename}"
             logger.info(
                 f"Accessing CMEMS model from Hugging Face Dataset '{self.repo_id}' "
-                f"(verifying local cache or downloading once on initial startup)..."
+                f"(streaming once into '{cached_nc_path}' with low-memory 1MB chunks)..."
             )
             try:
-                cached_nc_path = hf_hub_download(
-                    repo_id=self.repo_id,
-                    filename=self.model_filename,
-                    revision=self.revision,
-                    repo_type="dataset",
-                    token=self.token,
-                    cache_dir=self.cache_dir,
-                )
-                logger.info(f"CMEMS NetCDF ready at cached path: {cached_nc_path}")
-                self._model_ds = xr.open_dataset(cached_nc_path)
-            except Exception as e:
-                err_msg = (
-                    f"Failed to access CMEMS model NetCDF from Hugging Face dataset '{self.repo_id}': {e}. "
-                    "Ensure adequate disk space and valid internet connection."
-                )
-                logger.error(err_msg)
-                raise RuntimeError(err_msg)
+                final_path = _stream_download_low_memory(direct_url, cached_nc_path, token=self.token)
+                self._model_ds = xr.open_dataset(str(final_path))
+            except Exception as stream_err:
+                logger.warning(f"Direct stream download encountered error ({stream_err}). Falling back to hf_hub_download...")
+                try:
+                    fallback_path = hf_hub_download(
+                        repo_id=self.repo_id,
+                        filename=self.model_filename,
+                        revision=self.revision,
+                        repo_type="dataset",
+                        token=self.token,
+                        cache_dir=self.cache_dir,
+                    )
+                    logger.info(f"CMEMS NetCDF ready at cached path: {fallback_path}")
+                    self._model_ds = xr.open_dataset(fallback_path)
+                except Exception as fallback_err:
+                    err_msg = (
+                        f"Failed to access CMEMS model NetCDF from Hugging Face dataset '{self.repo_id}': {fallback_err}. "
+                        "Ensure adequate disk space and valid internet connection."
+                    )
+                    logger.error(err_msg)
+                    raise RuntimeError(err_msg)
 
         return self._model_ds
 

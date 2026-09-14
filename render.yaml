@@ -16,5 +16,7 @@ services:
         value: main
       - key: CACHE_ENABLED
         value: "true"
+      - key: HF_HUB_DISABLE_XET
+        value: "1"
       - key: PYTHON_VERSION
         value: "3.11.9"
